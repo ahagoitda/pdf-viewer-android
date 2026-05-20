@@ -1,6 +1,7 @@
 package com.pdfutility.presentation.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -23,8 +24,20 @@ sealed class Screen(val route: String) {
 
 @Composable
 fun PdfUtilityNavHost(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    initialPdfUri: String? = null,
+    onPdfUriHandled: () -> Unit = {}
 ) {
+    LaunchedEffect(initialPdfUri) {
+        if (!initialPdfUri.isNullOrEmpty()) {
+            navController.navigate(Screen.PdfViewer.createRoute(initialPdfUri)) {
+                // Ensure we go back to the document list screen when hitting back from viewer
+                popUpTo(Screen.DocumentList.route)
+            }
+            onPdfUriHandled()
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = Screen.DocumentList.route

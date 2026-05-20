@@ -37,4 +37,8 @@ class DocumentRepositoryImpl @Inject constructor(
     override suspend fun markDocumentOpened(document: PdfDocument) {
         recentDocumentDao.insertDocument(document.toEntity())
     }
+
+    override suspend fun resolveDocumentDetails(uri: String): PdfDocument? {
+        return fileDataSource.queryDocumentDetails(uri)
+    }
 }

@@ -1,6 +1,7 @@
 package com.pdfutility.presentation.ui.documentlist
 
 import android.Manifest
+import android.content.Intent
 import android.os.Build
 import android.text.format.Formatter
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -74,6 +76,28 @@ fun DocumentListScreen(
         }
     }
 
+    val openDocumentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri ->
+            uri?.let {
+                try {
+                    val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    context.contentResolver.takePersistableUriPermission(it, takeFlags)
+                } catch (e: Exception) {
+                    // Ignore
+                }
+                onDocumentClick(
+                    PdfDocument(
+                        uri = it.toString(),
+                        name = "",
+                        size = 0L,
+                        lastModified = 0L
+                    )
+                )
+            }
+        }
+    )
+
     LaunchedEffect(Unit) {
         if (!state.permissionGranted) {
             val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -87,6 +111,15 @@ fun DocumentListScreen(
 
     PdfUtilityScaffold(
         title = "PDF 목록",
+        actions = {
+            IconButton(onClick = { openDocumentLauncher.launch(arrayOf("application/pdf")) }) {
+                Icon(
+                    imageVector = Icons.Default.FolderOpen,
+                    contentDescription = "기기 PDF 열기",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = onImageToPdfClick) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = "이미지를 PDF로 변환")

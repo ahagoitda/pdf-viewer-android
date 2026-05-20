@@ -23,10 +23,15 @@ import kotlinx.coroutines.withContext
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import javax.inject.Inject
+import com.pdfutility.domain.model.PdfDocument
+import com.pdfutility.domain.usecase.MarkDocumentOpenedUseCase
+import com.pdfutility.domain.usecase.ResolveDocumentDetailsUseCase
 
 @HiltViewModel
 class PdfViewerViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val resolveDocumentDetailsUseCase: ResolveDocumentDetailsUseCase,
+    private val markDocumentOpenedUseCase: MarkDocumentOpenedUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PdfViewerState())
@@ -69,6 +74,15 @@ class PdfViewerViewModel @Inject constructor(
                         pdfRenderer = PdfRenderer(pfd)
                         val pageCount = pdfRenderer?.pageCount ?: 0
                         _state.update { it.copy(pageCount = pageCount, isLoading = false) }
+                        
+                        // Resolve document details and record in recent history
+                        val docDetails = resolveDocumentDetailsUseCase(decodedUri) ?: PdfDocument(
+                            uri = decodedUri,
+                            name = uri.lastPathSegment ?: "Document.pdf",
+                            size = 0L,
+                            lastModified = System.currentTimeMillis()
+                        )
+                        markDocumentOpenedUseCase(docDetails)
                     } ?: throw Exception("파일을 열 수 없습니다.")
                 }
             } catch (e: Exception) {

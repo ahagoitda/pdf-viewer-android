@@ -8,4 +8,5 @@ interface DocumentRepository {
     suspend fun deleteDocument(uri: String): Result<Unit>
     fun getRecentDocuments(): Flow<List<PdfDocument>>
     suspend fun markDocumentOpened(document: PdfDocument)
+    suspend fun resolveDocumentDetails(uri: String): PdfDocument?
 }

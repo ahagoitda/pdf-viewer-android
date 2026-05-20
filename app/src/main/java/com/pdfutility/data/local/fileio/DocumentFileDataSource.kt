@@ -85,4 +85,51 @@ class DocumentFileDataSource @Inject constructor(
             } else null
         }
     }
+
+    fun queryDocumentDetails(uriString: String): PdfDocument? {
+        val uri = Uri.parse(uriString)
+        if (uri.scheme == "file") {
+            val file = java.io.File(uri.path ?: return null)
+            if (file.exists()) {
+                return PdfDocument(
+                    uri = uriString,
+                    name = file.name,
+                    size = file.length(),
+                    lastModified = file.lastModified()
+                )
+            }
+        }
+        return try {
+            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameColumn = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    val sizeColumn = cursor.getColumnIndex(OpenableColumns.SIZE)
+                    
+                    val name = if (nameColumn >= 0) cursor.getString(nameColumn) else "Document.pdf"
+                    val size = if (sizeColumn >= 0) cursor.getLong(sizeColumn) else 0L
+                    
+                    var lastModified = System.currentTimeMillis()
+                    val lastModColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DATE_MODIFIED)
+                    if (lastModColumn >= 0) {
+                        lastModified = cursor.getLong(lastModColumn) * 1000L
+                    }
+                    
+                    PdfDocument(
+                        uri = uriString,
+                        name = name,
+                        size = size,
+                        lastModified = lastModified
+                    )
+                } else null
+            }
+        } catch (e: Exception) {
+            val name = uri.lastPathSegment ?: "Document.pdf"
+            PdfDocument(
+                uri = uriString,
+                name = name,
+                size = 0L,
+                lastModified = System.currentTimeMillis()
+            )
+        }
+    }
 }
