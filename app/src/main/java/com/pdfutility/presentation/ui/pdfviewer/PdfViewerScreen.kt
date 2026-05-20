@@ -6,6 +6,8 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,8 +49,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pdfutility.presentation.intent.PdfViewerIntent
@@ -67,7 +73,14 @@ fun PdfViewerScreen(
     val renderedBitmaps by viewModel.renderedBitmaps.collectAsState()
     val listState = rememberLazyListState()
     val context = LocalContext.current
+    
     var menuExpanded by remember { mutableStateOf(false) }
+    var showSaveFormatDialog by remember { mutableStateOf(false) }
+
+    // Zoom and pan gestures state variables
+    var isPinching by remember { mutableStateOf(false) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    var containerSize by remember { mutableStateOf(IntSize.Zero) }
 
     LaunchedEffect(pdfUri) {
         viewModel.onIntent(PdfViewerIntent.LoadDocument(pdfUri))
@@ -82,8 +95,14 @@ fun PdfViewerScreen(
             }
     }
 
-    val transformableState = rememberTransformableState { zoomChange, _, _ ->
-        viewModel.onIntent(PdfViewerIntent.SetZoom(state.zoomLevel * zoomChange))
+    val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
+        val newZoom = (state.zoomLevel * zoomChange).coerceIn(1f, 5f)
+        viewModel.onIntent(PdfViewerIntent.SetZoom(newZoom))
+        if (newZoom > 1f) {
+            offset = getBoundedOffset(offset + panChange, newZoom, containerSize)
+        } else {
+            offset = Offset.Zero
+        }
     }
 
     val saveDocumentLauncher = rememberLauncherForActivityResult(
@@ -112,8 +131,6 @@ fun PdfViewerScreen(
             }
         }
     )
-
-    var showSaveFormatDialog by remember { mutableStateOf(false) }
 
     if (showSaveFormatDialog) {
         AlertDialog(
@@ -232,11 +249,18 @@ fun PdfViewerScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.onIntent(PdfViewerIntent.SetZoom(state.zoomLevel - 0.2f)) }) {
+                    IconButton(onClick = { 
+                        val newZoom = (state.zoomLevel - 0.2f).coerceIn(1f, 5f)
+                        viewModel.onIntent(PdfViewerIntent.SetZoom(newZoom)) 
+                        if (newZoom <= 1f) offset = Offset.Zero
+                    }) {
                         Icon(imageVector = Icons.Default.Remove, contentDescription = "축소")
                     }
                     Text(text = "${(state.zoomLevel * 100).toInt()}%")
-                    IconButton(onClick = { viewModel.onIntent(PdfViewerIntent.SetZoom(state.zoomLevel + 0.2f)) }) {
+                    IconButton(onClick = { 
+                        val newZoom = (state.zoomLevel + 0.2f).coerceIn(1f, 5f)
+                        viewModel.onIntent(PdfViewerIntent.SetZoom(newZoom)) 
+                    }) {
                         Icon(imageVector = Icons.Default.Add, contentDescription = "확대")
                     }
                     Box {
@@ -306,11 +330,43 @@ fun PdfViewerScreen(
 
                     LazyColumn(
                         state = listState,
+                        userScrollEnabled = state.zoomLevel == 1f && !isPinching,
                         modifier = Modifier
                             .fillMaxSize()
+                            .onSizeChanged { containerSize = it }
+                            .pointerInput(Unit) {
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        isPinching = event.changes.size >= 2
+                                    }
+                                }
+                            }
+                            .pointerInput(state.zoomLevel) {
+                                if (state.zoomLevel > 1f) {
+                                    detectDragGestures { change, dragAmount ->
+                                        change.consume()
+                                        offset = getBoundedOffset(offset + dragAmount, state.zoomLevel, containerSize)
+                                    }
+                                }
+                            }
+                            .pointerInput(state.zoomLevel) {
+                                detectTapGestures(
+                                    onDoubleTap = {
+                                        if (state.zoomLevel > 1f) {
+                                            viewModel.onIntent(PdfViewerIntent.SetZoom(1f))
+                                            offset = Offset.Zero
+                                        } else {
+                                            viewModel.onIntent(PdfViewerIntent.SetZoom(2.5f))
+                                        }
+                                    }
+                                )
+                            }
                             .graphicsLayer {
                                 scaleX = state.zoomLevel
                                 scaleY = state.zoomLevel
+                                translationX = offset.x
+                                translationY = offset.y
                              }
                             .transformable(state = transformableState)
                     ) {
@@ -328,6 +384,16 @@ fun PdfViewerScreen(
             }
         }
     }
+}
+
+private fun getBoundedOffset(offset: Offset, scale: Float, size: IntSize): Offset {
+    if (scale <= 1f) return Offset.Zero
+    val maxX = (size.width * (scale - 1f)) / 2f
+    val maxY = (size.height * (scale - 1f)) / 2f
+    return Offset(
+        x = offset.x.coerceIn(-maxX, maxX),
+        y = offset.y.coerceIn(-maxY, maxY)
+    )
 }
 
 private fun sharePdf(context: Context, uriString: String) {
