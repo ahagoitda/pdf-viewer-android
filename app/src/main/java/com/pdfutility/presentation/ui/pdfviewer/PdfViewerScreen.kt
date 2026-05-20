@@ -8,12 +8,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -111,6 +113,72 @@ fun PdfViewerScreen(
         }
     )
 
+    var showSaveFormatDialog by remember { mutableStateOf(false) }
+
+    if (showSaveFormatDialog) {
+        AlertDialog(
+            onDismissRequest = { showSaveFormatDialog = false },
+            title = { Text("파일 저장 형식 선택") },
+            text = {
+                Column {
+                    Text("저장할 파일 형식을 선택하세요:", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    TextButton(
+                        onClick = {
+                            showSaveFormatDialog = false
+                            val parsedUri = Uri.parse(pdfUri)
+                            val fileName = parsedUri.lastPathSegment ?: "document.pdf"
+                            saveDocumentLauncher.launch(fileName)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+                            Text("PDF 파일 (.pdf)로 저장", style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    TextButton(
+                        onClick = {
+                            showSaveFormatDialog = false
+                            val parsedUri = Uri.parse(pdfUri)
+                            val baseName = parsedUri.lastPathSegment?.removeSuffix(".pdf") ?: "document"
+                            saveTextLauncher.launch("${baseName}.txt")
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+                            Text("텍스트 파일 (.txt)로 저장", style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    TextButton(
+                        onClick = {
+                            showSaveFormatDialog = false
+                            val parsedUri = Uri.parse(pdfUri)
+                            val baseName = parsedUri.lastPathSegment?.removeSuffix(".pdf") ?: "document"
+                            saveDocxLauncher.launch("${baseName}.docx")
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+                            Text("워드 문서 (.docx)로 저장", style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSaveFormatDialog = false }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+
     // Export Feedback Dialogs
     when (val exportState = state.exportState) {
         is ExportState.Exporting -> {
@@ -187,12 +255,10 @@ fun PdfViewerScreen(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("파일로 저장") },
+                                text = { Text("파일로 저장...") },
                                 onClick = {
                                     menuExpanded = false
-                                    val parsedUri = Uri.parse(pdfUri)
-                                    val fileName = parsedUri.lastPathSegment ?: "document.pdf"
-                                    saveDocumentLauncher.launch(fileName)
+                                    showSaveFormatDialog = true
                                 }
                             )
                             DropdownMenuItem(
@@ -200,24 +266,6 @@ fun PdfViewerScreen(
                                 onClick = {
                                     menuExpanded = false
                                     viewModel.onIntent(PdfViewerIntent.ExportAsImages)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("텍스트로 저장 (txt)") },
-                                onClick = {
-                                    menuExpanded = false
-                                    val parsedUri = Uri.parse(pdfUri)
-                                    val baseName = parsedUri.lastPathSegment?.removeSuffix(".pdf") ?: "document"
-                                    saveTextLauncher.launch("${baseName}.txt")
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("워드로 저장 (docx)") },
-                                onClick = {
-                                    menuExpanded = false
-                                    val parsedUri = Uri.parse(pdfUri)
-                                    val baseName = parsedUri.lastPathSegment?.removeSuffix(".pdf") ?: "document"
-                                    saveDocxLauncher.launch("${baseName}.docx")
                                 }
                             )
                         }
