@@ -65,8 +65,7 @@ class PdfViewerViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
-                val decodedUri = URLDecoder.decode(encodedUri, StandardCharsets.UTF_8.toString())
-                val uri = Uri.parse(decodedUri)
+                val uri = Uri.parse(encodedUri)
                 
                 withContext(Dispatchers.IO) {
                     parcelFileDescriptor = context.contentResolver.openFileDescriptor(uri, "r")
@@ -76,8 +75,8 @@ class PdfViewerViewModel @Inject constructor(
                         _state.update { it.copy(pageCount = pageCount, isLoading = false) }
                         
                         // Resolve document details and record in recent history
-                        val docDetails = resolveDocumentDetailsUseCase(decodedUri) ?: PdfDocument(
-                            uri = decodedUri,
+                        val docDetails = resolveDocumentDetailsUseCase(encodedUri) ?: PdfDocument(
+                            uri = encodedUri,
                             name = uri.lastPathSegment ?: "Document.pdf",
                             size = 0L,
                             lastModified = System.currentTimeMillis()
