@@ -1,0 +1,9 @@
+package com.pdfutility.presentation.intent
+
+sealed interface PdfViewerIntent {
+    data class LoadDocument(val uri: String) : PdfViewerIntent
+    data class SetZoom(val level: Float) : PdfViewerIntent
+    data class GoToPage(val page: Int) : PdfViewerIntent
+    data class RenderPage(val pageIndex: Int, val width: Int, val height: Int) : PdfViewerIntent
+    data object ClearRenderedPages : PdfViewerIntent
+}
