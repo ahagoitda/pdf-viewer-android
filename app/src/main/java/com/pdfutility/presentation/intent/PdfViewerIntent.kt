@@ -11,4 +11,6 @@ sealed interface PdfViewerIntent {
     data class SaveAsFile(val targetUri: Uri) : PdfViewerIntent
     data object ExportAsImages : PdfViewerIntent
     data object DismissExportState : PdfViewerIntent
+    data class SaveAsText(val targetUri: Uri) : PdfViewerIntent
+    data class SaveAsDocx(val targetUri: Uri) : PdfViewerIntent
 }

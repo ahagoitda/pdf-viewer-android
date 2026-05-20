@@ -30,6 +30,8 @@ import com.pdfutility.domain.model.PdfDocument
 import com.pdfutility.domain.usecase.MarkDocumentOpenedUseCase
 import com.pdfutility.domain.usecase.ResolveDocumentDetailsUseCase
 import com.pdfutility.presentation.state.ExportState
+import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.text.PDFTextStripper
 
 @HiltViewModel
 class PdfViewerViewModel @Inject constructor(
@@ -68,6 +70,8 @@ class PdfViewerViewModel @Inject constructor(
             is PdfViewerIntent.DismissExportState -> {
                 _state.update { it.copy(exportState = ExportState.Idle) }
             }
+            is PdfViewerIntent.SaveAsText -> saveAsText(intent.targetUri)
+            is PdfViewerIntent.SaveAsDocx -> saveAsDocx(intent.targetUri)
         }
     }
 
@@ -244,5 +248,107 @@ class PdfViewerViewModel @Inject constructor(
         } catch (e: Exception) {
             // Ignore
         }
+    }
+
+    private fun extractTextFromPdf(): String {
+        val uriStr = currentUriString ?: throw Exception("PDF 파일이 로드되지 않았습니다.")
+        val uri = Uri.parse(uriStr)
+        context.contentResolver.openInputStream(uri)?.use { inputStream ->
+            PDDocument.load(inputStream).use { pdDocument ->
+                val stripper = PDFTextStripper()
+                return stripper.getText(pdDocument)
+            }
+        } ?: throw Exception("PDF 파일을 읽을 수 없습니다.")
+    }
+
+    private fun saveAsText(targetUri: Uri) {
+        viewModelScope.launch {
+            _state.update { it.copy(exportState = ExportState.Exporting) }
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val extractedText = extractTextFromPdf()
+                    context.contentResolver.openOutputStream(targetUri)?.use { output ->
+                        output.write(extractedText.toByteArray(Charsets.UTF_8))
+                    } ?: throw Exception("저장할 파일을 열 수 없습니다.")
+                }
+            }
+            result.onSuccess {
+                _state.update { it.copy(exportState = ExportState.Success("텍스트 파일(.txt)이 성공적으로 저장되었습니다.")) }
+            }.onFailure { e ->
+                _state.update { it.copy(exportState = ExportState.Error(e.message ?: "텍스트 저장 중 오류가 발생했습니다.")) }
+            }
+        }
+    }
+
+    private fun saveAsDocx(targetUri: Uri) {
+        viewModelScope.launch {
+            _state.update { it.copy(exportState = ExportState.Exporting) }
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val extractedText = extractTextFromPdf()
+                    val docxBytes = createDocxBytes(extractedText)
+                    context.contentResolver.openOutputStream(targetUri)?.use { output ->
+                        output.write(docxBytes)
+                    } ?: throw Exception("저장할 파일을 열 수 없습니다.")
+                }
+            }
+            result.onSuccess {
+                _state.update { it.copy(exportState = ExportState.Success("워드 문서(.docx)가 성공적으로 저장되었습니다.")) }
+            }.onFailure { e ->
+                _state.update { it.copy(exportState = ExportState.Error(e.message ?: "워드 저장 중 오류가 발생했습니다.")) }
+            }
+        }
+    }
+
+    private fun createDocxBytes(text: String): ByteArray {
+        val baos = java.io.ByteArrayOutputStream()
+        java.util.zip.ZipOutputStream(baos).use { zos ->
+            // 1. [Content_Types].xml
+            zos.putNextEntry(java.util.zip.ZipEntry("[Content_Types].xml"))
+            val contentTypes = """
+                <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+                  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+                  <Default Extension="xml" ContentType="application/xml"/>
+                  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+                </Types>
+            """.trimIndent().trim().toByteArray(Charsets.UTF_8)
+            zos.write(contentTypes)
+            zos.closeEntry()
+
+            // 2. _rels/.rels
+            zos.putNextEntry(java.util.zip.ZipEntry("_rels/.rels"))
+            val rels = """
+                <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                <Relationships xmlns="http://schemas.openxmlformats.org/relationships/package/2006">
+                  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+                </Relationships>
+            """.trimIndent().trim().toByteArray(Charsets.UTF_8)
+            zos.write(rels)
+            zos.closeEntry()
+
+            // 3. word/document.xml
+            zos.putNextEntry(java.util.zip.ZipEntry("word/document.xml"))
+            val sb = java.lang.StringBuilder()
+            sb.append("""<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>""")
+            
+            // Escape special XML characters
+            val escapedText = text.replace("&", "&amp;")
+                                  .replace("<", "&lt;")
+                                  .replace(">", "&gt;")
+                                  .replace("\"", "&quot;")
+                                  .replace("'", "&apos;")
+                                  
+            val lines = escapedText.split("\n")
+            for (line in lines) {
+                sb.append("<w:p><w:r><w:t>").append(line).append("</w:t></w:r></w:p>")
+            }
+            
+            sb.append("<w:sectPr/></w:body></w:document>")
+            val docXml = sb.toString().toByteArray(Charsets.UTF_8)
+            zos.write(docXml)
+            zos.closeEntry()
+        }
+        return baos.toByteArray()
     }
 }

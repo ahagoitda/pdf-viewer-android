@@ -93,6 +93,24 @@ fun PdfViewerScreen(
         }
     )
 
+    val saveTextLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/plain"),
+        onResult = { uri ->
+            uri?.let {
+                viewModel.onIntent(PdfViewerIntent.SaveAsText(it))
+            }
+        }
+    )
+
+    val saveDocxLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+        onResult = { uri ->
+            uri?.let {
+                viewModel.onIntent(PdfViewerIntent.SaveAsDocx(it))
+            }
+        }
+    )
+
     // Export Feedback Dialogs
     when (val exportState = state.exportState) {
         is ExportState.Exporting -> {
@@ -182,6 +200,24 @@ fun PdfViewerScreen(
                                 onClick = {
                                     menuExpanded = false
                                     viewModel.onIntent(PdfViewerIntent.ExportAsImages)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("텍스트로 저장 (txt)") },
+                                onClick = {
+                                    menuExpanded = false
+                                    val parsedUri = Uri.parse(pdfUri)
+                                    val baseName = parsedUri.lastPathSegment?.removeSuffix(".pdf") ?: "document"
+                                    saveTextLauncher.launch("${baseName}.txt")
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("워드로 저장 (docx)") },
+                                onClick = {
+                                    menuExpanded = false
+                                    val parsedUri = Uri.parse(pdfUri)
+                                    val baseName = parsedUri.lastPathSegment?.removeSuffix(".pdf") ?: "document"
+                                    saveDocxLauncher.launch("${baseName}.docx")
                                 }
                             )
                         }
