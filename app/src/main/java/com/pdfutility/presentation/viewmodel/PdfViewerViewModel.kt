@@ -23,9 +23,13 @@ import kotlinx.coroutines.withContext
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import javax.inject.Inject
+import android.content.ContentValues
+import android.provider.MediaStore
+import android.os.Build
 import com.pdfutility.domain.model.PdfDocument
 import com.pdfutility.domain.usecase.MarkDocumentOpenedUseCase
 import com.pdfutility.domain.usecase.ResolveDocumentDetailsUseCase
+import com.pdfutility.presentation.state.ExportState
 
 @HiltViewModel
 class PdfViewerViewModel @Inject constructor(
@@ -39,6 +43,7 @@ class PdfViewerViewModel @Inject constructor(
 
     private var pdfRenderer: PdfRenderer? = null
     private var parcelFileDescriptor: ParcelFileDescriptor? = null
+    private var currentUriString: String? = null
     
     private val _renderedBitmaps = MutableStateFlow<Map<Int, Bitmap>>(emptyMap())
     val renderedBitmaps: StateFlow<Map<Int, Bitmap>> = _renderedBitmaps.asStateFlow()
@@ -58,10 +63,16 @@ class PdfViewerViewModel @Inject constructor(
                 renderPage(intent.pageIndex, intent.width, intent.height)
             }
             is PdfViewerIntent.ClearRenderedPages -> clearAllBitmaps()
+            is PdfViewerIntent.SaveAsFile -> saveAsFile(intent.targetUri)
+            is PdfViewerIntent.ExportAsImages -> exportAsImages()
+            is PdfViewerIntent.DismissExportState -> {
+                _state.update { it.copy(exportState = ExportState.Idle) }
+            }
         }
     }
 
     private fun loadDocument(encodedUri: String) {
+        currentUriString = encodedUri
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
@@ -86,6 +97,90 @@ class PdfViewerViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _state.update { it.copy(error = e.message ?: "PDF를 불러오는 중 오류가 발생했습니다.", isLoading = false) }
+            }
+        }
+    }
+
+    private fun saveAsFile(targetUri: Uri) {
+        val uriStr = currentUriString ?: return
+        viewModelScope.launch {
+            _state.update { it.copy(exportState = ExportState.Exporting) }
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val sourceUri = Uri.parse(uriStr)
+                    context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                        context.contentResolver.openOutputStream(targetUri)?.use { output ->
+                            input.copyTo(output)
+                        }
+                    } ?: throw Exception("원본 파일을 열 수 없습니다.")
+                }
+            }
+            result.onSuccess {
+                _state.update { it.copy(exportState = ExportState.Success("파일이 성공적으로 저장되었습니다.")) }
+            }.onFailure { e ->
+                _state.update { it.copy(exportState = ExportState.Error(e.message ?: "파일 저장 중 오류가 발생했습니다.")) }
+            }
+        }
+    }
+
+    private fun exportAsImages() {
+        val uriStr = currentUriString ?: return
+        viewModelScope.launch {
+            _state.update { it.copy(exportState = ExportState.Exporting) }
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val uri = Uri.parse(uriStr)
+                    val contentResolver = context.contentResolver
+                    
+                    val baseName = resolveDocumentDetailsUseCase(uriStr)?.name?.removeSuffix(".pdf")
+                        ?: "document_${System.currentTimeMillis()}"
+                        
+                    contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                        PdfRenderer(pfd).use { renderer ->
+                            val pageCount = renderer.pageCount
+                            
+                            for (i in 0 until pageCount) {
+                                val page = renderer.openPage(i)
+                                val targetWidth = 1500
+                                val targetHeight = (page.height * (targetWidth.toFloat() / page.width)).toInt()
+                                val bitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+                                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                                page.close()
+                                
+                                val displayName = "${baseName}_page_${i + 1}.jpg"
+                                val values = ContentValues().apply {
+                                    put(MediaStore.Images.Media.DISPLAY_NAME, displayName)
+                                    put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                        put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/PdfUtility/$baseName")
+                                        put(MediaStore.Images.Media.IS_PENDING, 1)
+                                    }
+                                }
+                                
+                                val imageUri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                                if (imageUri != null) {
+                                    contentResolver.openOutputStream(imageUri)?.use { out ->
+                                        bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                                    }
+                                    
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                        values.clear()
+                                        values.put(MediaStore.Images.Media.IS_PENDING, 0)
+                                        contentResolver.update(imageUri, values, null, null)
+                                    }
+                                }
+                                bitmap.recycle()
+                            }
+                            pageCount
+                        }
+                    } ?: throw Exception("파일을 열 수 없습니다.")
+                }
+            }
+            
+            result.onSuccess { pageCount ->
+                _state.update { it.copy(exportState = ExportState.Success("${pageCount}장의 이미지가 갤러리(Pictures/PdfUtility)에 저장되었습니다.")) }
+            }.onFailure { e ->
+                _state.update { it.copy(exportState = ExportState.Error(e.message ?: "이미지 저장 중 오류가 발생했습니다.")) }
             }
         }
     }

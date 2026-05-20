@@ -7,4 +7,12 @@ data class PdfViewerState(
     val isRendering: Boolean = false,
     val isLoading: Boolean = true,
     val error: String? = null,
+    val exportState: ExportState = ExportState.Idle
 )
+
+sealed interface ExportState {
+    data object Idle : ExportState
+    data object Exporting : ExportState
+    data class Success(val message: String) : ExportState
+    data class Error(val error: String) : ExportState
+}
