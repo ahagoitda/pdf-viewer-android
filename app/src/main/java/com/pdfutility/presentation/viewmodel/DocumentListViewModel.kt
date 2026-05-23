@@ -7,7 +7,9 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pdfutility.domain.model.ConversionResult
 import com.pdfutility.domain.model.PdfDocument
+import com.pdfutility.domain.usecase.ConvertFileToPdfUseCase
 import com.pdfutility.domain.usecase.DeleteDocumentUseCase
 import com.pdfutility.domain.usecase.GetPdfDocumentsUseCase
 import com.pdfutility.domain.usecase.GetRecentDocumentsUseCase
@@ -16,8 +18,11 @@ import com.pdfutility.presentation.intent.DocumentListIntent
 import com.pdfutility.presentation.state.DocumentListState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -29,11 +34,15 @@ class DocumentListViewModel @Inject constructor(
     private val getPdfDocumentsUseCase: GetPdfDocumentsUseCase,
     private val getRecentDocumentsUseCase: GetRecentDocumentsUseCase,
     private val deleteDocumentUseCase: DeleteDocumentUseCase,
-    private val markDocumentOpenedUseCase: MarkDocumentOpenedUseCase
+    private val markDocumentOpenedUseCase: MarkDocumentOpenedUseCase,
+    private val convertFileToPdfUseCase: ConvertFileToPdfUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DocumentListState())
     val state: StateFlow<DocumentListState> = _state.asStateFlow()
+
+    private val _conversionNavEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val conversionNavEvent: SharedFlow<String> = _conversionNavEvent.asSharedFlow()
 
     init {
         checkPermission()
@@ -49,6 +58,7 @@ class DocumentListViewModel @Inject constructor(
             is DocumentListIntent.DeleteDocument -> deleteDocument(intent.uri)
             is DocumentListIntent.OpenDocument -> openDocument(intent.document)
             is DocumentListIntent.RequestPermission -> checkPermission()
+            is DocumentListIntent.ConvertAndOpenFile -> convertAndOpenFile(intent)
         }
     }
 
@@ -102,5 +112,24 @@ class DocumentListViewModel @Inject constructor(
         viewModelScope.launch {
             markDocumentOpenedUseCase(document)
         }
+    }
+
+    private fun convertAndOpenFile(intent: DocumentListIntent.ConvertAndOpenFile) {
+        viewModelScope.launch {
+            _state.update { it.copy(isConverting = true, conversionError = null) }
+            when (val result = convertFileToPdfUseCase(intent.uri, intent.mimeType)) {
+                is ConversionResult.Success -> {
+                    _state.update { it.copy(isConverting = false) }
+                    _conversionNavEvent.emit(result.outputPath)
+                }
+                is ConversionResult.Error -> {
+                    _state.update { it.copy(isConverting = false, conversionError = result.message) }
+                }
+            }
+        }
+    }
+
+    fun clearConversionError() {
+        _state.update { it.copy(conversionError = null) }
     }
 }

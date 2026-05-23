@@ -8,4 +8,6 @@ data class DocumentListState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val permissionGranted: Boolean = false,
+    val isConverting: Boolean = false,
+    val conversionError: String? = null,
 )

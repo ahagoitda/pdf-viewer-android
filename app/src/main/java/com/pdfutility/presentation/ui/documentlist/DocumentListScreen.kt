@@ -53,6 +53,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.pdfutility.domain.model.PdfDocument
 import com.pdfutility.presentation.intent.DocumentListIntent
 import com.pdfutility.presentation.ui.common.PdfUtilityScaffold
+import com.pdfutility.presentation.ui.imagetopdf.ConversionProgressScreen
 import com.pdfutility.presentation.viewmodel.DocumentListViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -62,11 +63,24 @@ import java.util.Locale
 fun DocumentListScreen(
     onDocumentClick: (PdfDocument) -> Unit,
     onImageToPdfClick: () -> Unit,
-    viewModel: DocumentListViewModel = hiltViewModel()
+    viewModel: DocumentListViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     var documentToDelete by remember { mutableStateOf<PdfDocument?>(null) }
+
+    LaunchedEffect(Unit) {
+        viewModel.conversionNavEvent.collect { outputPath ->
+            onDocumentClick(
+                PdfDocument(
+                    uri = "file://$outputPath",
+                    name = "",
+                    size = 0L,
+                    lastModified = 0L,
+                )
+            )
+        }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -86,14 +100,14 @@ fun DocumentListScreen(
                 } catch (e: Exception) {
                     // Ignore
                 }
-                onDocumentClick(
-                    PdfDocument(
-                        uri = it.toString(),
-                        name = "",
-                        size = 0L,
-                        lastModified = 0L
+                val mimeType = context.contentResolver.getType(it)
+                if (mimeType == "application/pdf") {
+                    onDocumentClick(
+                        PdfDocument(uri = it.toString(), name = "", size = 0L, lastModified = 0L)
                     )
-                )
+                } else {
+                    viewModel.onIntent(DocumentListIntent.ConvertAndOpenFile(it, mimeType))
+                }
             }
         }
     )
@@ -112,7 +126,21 @@ fun DocumentListScreen(
     PdfUtilityScaffold(
         title = "PDF 목록",
         actions = {
-            IconButton(onClick = { openDocumentLauncher.launch(arrayOf("application/pdf")) }) {
+            IconButton(onClick = {
+                openDocumentLauncher.launch(arrayOf(
+                    "application/pdf",
+                    "image/*",
+                    "text/plain",
+                    "text/csv",
+                    "text/markdown",
+                    "text/html",
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "application/msword",
+                    "application/vnd.ms-excel",
+                    "application/octet-stream",
+                ))
+            }) {
                 Icon(
                     imageVector = Icons.Default.FolderOpen,
                     contentDescription = "기기 PDF 열기",
@@ -202,6 +230,23 @@ fun DocumentListScreen(
                 documentToDelete = null
             },
             onDismiss = { documentToDelete = null }
+        )
+    }
+
+    if (state.isConverting) {
+        ConversionProgressScreen(progress = 0f)
+    }
+
+    state.conversionError?.let { error ->
+        AlertDialog(
+            onDismissRequest = { viewModel.clearConversionError() },
+            title = { Text(text = "변환 실패") },
+            text = { Text(text = error) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearConversionError() }) {
+                    Text(text = "확인")
+                }
+            }
         )
     }
 }

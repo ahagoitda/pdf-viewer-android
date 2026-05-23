@@ -8,4 +8,6 @@ interface ConversionRepository {
         images: List<Uri>,
         outputFileName: String,
     ): ConversionResult
+
+    suspend fun convertFileToPdf(uri: Uri, mimeType: String?): ConversionResult
 }

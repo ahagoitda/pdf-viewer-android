@@ -1,16 +1,20 @@
 package com.pdfutility.presentation.ui.navigation
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.pdfutility.presentation.intent.DocumentListIntent
 import com.pdfutility.presentation.ui.documentlist.DocumentListScreen
 import com.pdfutility.presentation.ui.imagetopdf.ImageToPdfScreen
 import com.pdfutility.presentation.ui.pdfviewer.PdfViewerScreen
+import com.pdfutility.presentation.viewmodel.DocumentListViewModel
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -26,12 +30,13 @@ sealed class Screen(val route: String) {
 fun PdfUtilityNavHost(
     navController: NavHostController = rememberNavController(),
     initialPdfUri: String? = null,
-    onPdfUriHandled: () -> Unit = {}
+    onPdfUriHandled: () -> Unit = {},
+    initialConversionRequest: Pair<String, String?>? = null,
+    onConversionRequestHandled: () -> Unit = {},
 ) {
     LaunchedEffect(initialPdfUri) {
         if (!initialPdfUri.isNullOrEmpty()) {
             navController.navigate(Screen.PdfViewer.createRoute(initialPdfUri)) {
-                // Ensure we go back to the document list screen when hitting back from viewer
                 popUpTo(Screen.DocumentList.route)
             }
             onPdfUriHandled()
@@ -43,7 +48,17 @@ fun PdfUtilityNavHost(
         startDestination = Screen.DocumentList.route
     ) {
         composable(Screen.DocumentList.route) {
+            val viewModel: DocumentListViewModel = hiltViewModel()
+            LaunchedEffect(initialConversionRequest) {
+                initialConversionRequest?.let { (uriString, mimeType) ->
+                    viewModel.onIntent(
+                        DocumentListIntent.ConvertAndOpenFile(Uri.parse(uriString), mimeType)
+                    )
+                    onConversionRequestHandled()
+                }
+            }
             DocumentListScreen(
+                viewModel = viewModel,
                 onDocumentClick = { document ->
                     navController.navigate(Screen.PdfViewer.createRoute(document.uri))
                 },
