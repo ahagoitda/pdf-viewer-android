@@ -13,10 +13,11 @@ class PdfUtilityApp : Application() {
         try {
             // Initialize PDFBox
             PDFBoxResourceLoader.init(this)
-            
-            // Defensive initialization for AdMob
-            MobileAds.initialize(this) { status ->
-                Log.d("PdfUtilityApp", "AdMob Initialized: $status")
+
+            if (BuildConfig.ADMOB_APP_ID.isNotBlank()) {
+                MobileAds.initialize(this) { status ->
+                    Log.d("PdfUtilityApp", "AdMob Initialized: $status")
+                }
             }
         } catch (e: Exception) {
             Log.e("PdfUtilityApp", "Failed to initialize app systems", e)

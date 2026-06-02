@@ -16,6 +16,19 @@ val localProperties = Properties().apply {
     }
 }
 
+val uploadStoreFile = localProperties.getProperty("UPLOAD_STORE_FILE")
+val uploadKeyAlias = localProperties.getProperty("UPLOAD_KEY_ALIAS")
+val uploadStorePassword = localProperties.getProperty("UPLOAD_STORE_PASSWORD")
+val uploadKeyPassword = localProperties.getProperty("UPLOAD_KEY_PASSWORD")
+val admobAppId = localProperties.getProperty("ADMOB_APP_ID", "")
+val admobManifestAppId = admobAppId.ifBlank { "ca-app-pub-3940256099942544~3347511713" }
+val hasReleaseSigningConfig = listOf(
+    uploadStoreFile,
+    uploadKeyAlias,
+    uploadStorePassword,
+    uploadKeyPassword
+).all { !it.isNullOrBlank() }
+
 android {
     namespace = "com.pdfutility"
     compileSdk = 35
@@ -29,16 +42,30 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "ADMOB_APP_ID", "\"${localProperties.getProperty("ADMOB_APP_ID", "")}\"")
+        buildConfigField("String", "ADMOB_APP_ID", "\"$admobAppId\"")
         buildConfigField("String", "ADMOB_BANNER_AD_UNIT_ID", "\"${localProperties.getProperty("ADMOB_BANNER_AD_UNIT_ID", "")}\"")
         buildConfigField("String", "ADMOB_INTERSTITIAL_AD_UNIT_ID", "\"${localProperties.getProperty("ADMOB_INTERSTITIAL_AD_UNIT_ID", "")}\"")
 
-        manifestPlaceholders["ADMOB_APP_ID"] = localProperties.getProperty("ADMOB_APP_ID", "")
+        manifestPlaceholders["ADMOB_APP_ID"] = admobManifestAppId
+    }
+
+    signingConfigs {
+        if (hasReleaseSigningConfig) {
+            create("release") {
+                storeFile = rootProject.file(uploadStoreFile!!)
+                storePassword = uploadStorePassword
+                keyAlias = uploadKeyAlias
+                keyPassword = uploadKeyPassword
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

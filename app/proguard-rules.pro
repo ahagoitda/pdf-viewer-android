@@ -10,3 +10,6 @@
 # Kotlinx Serialization (if used later)
 -keepattributes *Annotation*, InnerClasses
 -dontnote kotlinx.serialization.AnnotationsKt
+
+# pdfbox-android references this optional JPEG2000 decoder when available.
+-dontwarn com.gemalto.jp2.JP2Decoder

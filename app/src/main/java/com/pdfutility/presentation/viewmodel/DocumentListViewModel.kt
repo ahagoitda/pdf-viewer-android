@@ -53,15 +53,14 @@ class DocumentListViewModel @Inject constructor(
     }
 
     private fun checkPermission() {
-        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            Manifest.permission.READ_MEDIA_IMAGES
-        } else {
-            Manifest.permission.READ_EXTERNAL_STORAGE
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            _state.update { it.copy(permissionGranted = true) }
+            return
         }
 
         val isGranted = ContextCompat.checkSelfPermission(
             context,
-            permission
+            Manifest.permission.READ_EXTERNAL_STORAGE
         ) == PackageManager.PERMISSION_GRANTED
 
         _state.update { it.copy(permissionGranted = isGranted) }

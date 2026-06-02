@@ -99,13 +99,8 @@ fun DocumentListScreen(
     )
 
     LaunchedEffect(Unit) {
-        if (!state.permissionGranted) {
-            val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                Manifest.permission.READ_MEDIA_IMAGES
-            } else {
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            }
-            permissionLauncher.launch(permission)
+        if (!state.permissionGranted && Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
     }
 
@@ -129,12 +124,7 @@ fun DocumentListScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             if (!state.permissionGranted) {
                 PermissionRequiredView {
-                    val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        Manifest.permission.READ_MEDIA_IMAGES
-                    } else {
-                        Manifest.permission.READ_EXTERNAL_STORAGE
-                    }
-                    permissionLauncher.launch(permission)
+                    permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
                 }
             } else if (state.isLoading) {
                 LoadingView()

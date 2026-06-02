@@ -11,6 +11,10 @@ import com.pdfutility.BuildConfig
 
 @Composable
 fun AdMobBanner(modifier: Modifier = Modifier) {
+    if (BuildConfig.ADMOB_BANNER_AD_UNIT_ID.isBlank()) {
+        return
+    }
+
     AndroidView(
         modifier = modifier.fillMaxWidth(),
         factory = { context ->

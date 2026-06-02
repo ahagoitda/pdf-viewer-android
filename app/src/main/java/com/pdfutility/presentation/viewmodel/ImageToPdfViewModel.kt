@@ -90,6 +90,11 @@ class ImageToPdfViewModel @Inject constructor(
     }
 
     private fun loadInterstitialAd() {
+        if (BuildConfig.ADMOB_INTERSTITIAL_AD_UNIT_ID.isBlank()) {
+            interstitialAd = null
+            return
+        }
+
         val adRequest = AdRequest.Builder().build()
         InterstitialAd.load(
             context,
