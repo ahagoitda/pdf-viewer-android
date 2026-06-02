@@ -1,5 +1,9 @@
 package com.pdfutility.presentation.ui.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
@@ -17,6 +21,8 @@ import com.pdfutility.presentation.ui.reorderpages.ReorderPagesScreen
 import com.pdfutility.presentation.ui.splitpdf.SplitPdfScreen
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+
+private const val ANIM_DURATION = 300
 
 sealed class Screen(val route: String) {
     data object DocumentList : Screen("document_list")
@@ -55,7 +61,11 @@ fun PdfUtilityNavHost(
 
     NavHost(
         navController = navController,
-        startDestination = Screen.DocumentList.route
+        startDestination = Screen.DocumentList.route,
+        enterTransition = { fadeIn(animationSpec = tween(ANIM_DURATION)) + slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start) },
+        exitTransition = { fadeOut(animationSpec = tween(ANIM_DURATION)) + slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start) },
+        popEnterTransition = { fadeIn(animationSpec = tween(ANIM_DURATION)) + slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End) },
+        popExitTransition = { fadeOut(animationSpec = tween(ANIM_DURATION)) + slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End) },
     ) {
         composable(Screen.DocumentList.route) {
             DocumentListScreen(
