@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CallSplit
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FolderOpen
@@ -65,6 +66,7 @@ fun DocumentListScreen(
     onHwpxDocumentClick: (String) -> Unit,
     onImageToPdfClick: () -> Unit,
     onMergePdfClick: () -> Unit,
+    onSplitPdfClick: () -> Unit,
     viewModel: DocumentListViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -136,6 +138,13 @@ fun DocumentListScreen(
                 Icon(
                     imageVector = Icons.Default.Merge,
                     contentDescription = "PDF 병합",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            IconButton(onClick = onSplitPdfClick) {
+                Icon(
+                    imageVector = Icons.Default.CallSplit,
+                    contentDescription = "PDF 분할",
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
