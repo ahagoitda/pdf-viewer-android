@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Merge
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -63,6 +64,7 @@ fun DocumentListScreen(
     onDocumentClick: (PdfDocument) -> Unit,
     onHwpxDocumentClick: (String) -> Unit,
     onImageToPdfClick: () -> Unit,
+    onMergePdfClick: () -> Unit,
     viewModel: DocumentListViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -123,10 +125,17 @@ fun DocumentListScreen(
     PdfUtilityScaffold(
         title = "PDF 목록",
         actions = {
-            IconButton(onClick = { openHwpxLauncher.launch(arrayOf("application/vnd.hancom.hwpx", "application/haansofthwp", "application/x-hwp", "application/zip", "application/octet-stream")) }) {
+            IconButton(onClick = { openHwpxLauncher.launch(arrayOf("application/vnd.hancom.hwpx", "application/haansofthwp", "application/x-hwp", "application/octet-stream")) }) {
                 Icon(
                     imageVector = Icons.Default.Description,
                     contentDescription = "HWPX 열기",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            IconButton(onClick = onMergePdfClick) {
+                Icon(
+                    imageVector = Icons.Default.Merge,
+                    contentDescription = "PDF 병합",
                     tint = MaterialTheme.colorScheme.primary
                 )
             }

@@ -11,6 +11,7 @@ import androidx.navigation.navArgument
 import com.pdfutility.presentation.ui.documentlist.DocumentListScreen
 import com.pdfutility.presentation.ui.hwpxviewer.HwpxViewerScreen
 import com.pdfutility.presentation.ui.imagetopdf.ImageToPdfScreen
+import com.pdfutility.presentation.ui.mergepdf.MergePdfScreen
 import com.pdfutility.presentation.ui.pdfviewer.PdfViewerScreen
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -24,6 +25,7 @@ sealed class Screen(val route: String) {
         fun createRoute(hwpxUri: String) = "hwpx_viewer/${URLEncoder.encode(hwpxUri, StandardCharsets.UTF_8.toString())}"
     }
     data object ImageToPdf : Screen("image_to_pdf")
+    data object MergePdf : Screen("merge_pdf")
 }
 
 @Composable
@@ -61,6 +63,9 @@ fun PdfUtilityNavHost(
                 },
                 onImageToPdfClick = {
                     navController.navigate(Screen.ImageToPdf.route)
+                },
+                onMergePdfClick = {
+                    navController.navigate(Screen.MergePdf.route)
                 }
             )
         }
@@ -88,7 +93,16 @@ fun PdfUtilityNavHost(
             ImageToPdfScreen(
                 onBackClick = { navController.popBackStack() },
                 onConversionSuccess = { outputPath ->
-                    // Navigate to viewer for the new PDF
+                    navController.navigate(Screen.PdfViewer.createRoute("file://$outputPath")) {
+                        popUpTo(Screen.DocumentList.route)
+                    }
+                }
+            )
+        }
+        composable(Screen.MergePdf.route) {
+            MergePdfScreen(
+                onBackClick = { navController.popBackStack() },
+                onMergeSuccess = { outputPath ->
                     navController.navigate(Screen.PdfViewer.createRoute("file://$outputPath")) {
                         popUpTo(Screen.DocumentList.route)
                     }
