@@ -9,9 +9,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pdfutility.domain.model.PdfDocument
 import com.pdfutility.domain.usecase.DeleteDocumentUseCase
+import com.pdfutility.domain.usecase.GetBookmarkedDocumentsUseCase
 import com.pdfutility.domain.usecase.GetPdfDocumentsUseCase
 import com.pdfutility.domain.usecase.GetRecentDocumentsUseCase
 import com.pdfutility.domain.usecase.MarkDocumentOpenedUseCase
+import com.pdfutility.domain.usecase.ToggleBookmarkUseCase
 import com.pdfutility.presentation.intent.DocumentListIntent
 import com.pdfutility.presentation.state.DocumentListState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,8 +30,10 @@ class DocumentListViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val getPdfDocumentsUseCase: GetPdfDocumentsUseCase,
     private val getRecentDocumentsUseCase: GetRecentDocumentsUseCase,
+    private val getBookmarkedDocumentsUseCase: GetBookmarkedDocumentsUseCase,
     private val deleteDocumentUseCase: DeleteDocumentUseCase,
-    private val markDocumentOpenedUseCase: MarkDocumentOpenedUseCase
+    private val markDocumentOpenedUseCase: MarkDocumentOpenedUseCase,
+    private val toggleBookmarkUseCase: ToggleBookmarkUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DocumentListState())
@@ -38,6 +42,7 @@ class DocumentListViewModel @Inject constructor(
     init {
         checkPermission()
         observeRecentDocuments()
+        observeBookmarks()
         if (_state.value.permissionGranted) {
             loadDocuments()
         }
@@ -49,6 +54,8 @@ class DocumentListViewModel @Inject constructor(
             is DocumentListIntent.DeleteDocument -> deleteDocument(intent.uri)
             is DocumentListIntent.OpenDocument -> openDocument(intent.document)
             is DocumentListIntent.RequestPermission -> checkPermission()
+            is DocumentListIntent.ToggleBookmark -> toggleBookmark(intent.document)
+            is DocumentListIntent.ToggleShowBookmarks -> toggleShowBookmarks()
         }
     }
 
@@ -86,6 +93,14 @@ class DocumentListViewModel @Inject constructor(
         }
     }
 
+    private fun observeBookmarks() {
+        viewModelScope.launch {
+            getBookmarkedDocumentsUseCase().collect { bookmarks ->
+                _state.update { it.copy(bookmarkedDocuments = bookmarks) }
+            }
+        }
+    }
+
     private fun deleteDocument(uri: String) {
         viewModelScope.launch {
             val result = deleteDocumentUseCase(uri)
@@ -101,5 +116,15 @@ class DocumentListViewModel @Inject constructor(
         viewModelScope.launch {
             markDocumentOpenedUseCase(document)
         }
+    }
+
+    private fun toggleBookmark(document: PdfDocument) {
+        viewModelScope.launch {
+            toggleBookmarkUseCase(document)
+        }
+    }
+
+    private fun toggleShowBookmarks() {
+        _state.update { it.copy(showBookmarks = !it.showBookmarks) }
     }
 }

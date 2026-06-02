@@ -7,4 +7,6 @@ sealed interface DocumentListIntent {
     data class DeleteDocument(val uri: String) : DocumentListIntent
     data class OpenDocument(val document: PdfDocument) : DocumentListIntent
     data object RequestPermission : DocumentListIntent
+    data class ToggleBookmark(val document: PdfDocument) : DocumentListIntent
+    data object ToggleShowBookmarks : DocumentListIntent
 }

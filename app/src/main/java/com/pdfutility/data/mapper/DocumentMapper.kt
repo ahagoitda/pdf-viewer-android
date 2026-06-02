@@ -1,5 +1,6 @@
 package com.pdfutility.data.mapper
 
+import com.pdfutility.data.local.db.entity.BookmarkEntity
 import com.pdfutility.data.local.db.entity.RecentDocumentEntity
 import com.pdfutility.domain.model.PdfDocument
 
@@ -19,5 +20,14 @@ fun RecentDocumentEntity.toDomain(): PdfDocument {
         name = name,
         size = size,
         lastModified = lastModified,
+    )
+}
+
+fun BookmarkEntity.toDomain(): PdfDocument {
+    return PdfDocument(
+        uri = uri,
+        name = name,
+        size = size,
+        lastModified = bookmarkedAt,
     )
 }

@@ -3,6 +3,7 @@ package com.pdfutility.di
 import android.content.Context
 import androidx.room.Room
 import com.pdfutility.data.local.db.PdfUtilityDatabase
+import com.pdfutility.data.local.db.dao.BookmarkDao
 import com.pdfutility.data.local.db.dao.RecentDocumentDao
 import dagger.Module
 import dagger.Provides
@@ -24,7 +25,7 @@ object DatabaseModule {
             context,
             PdfUtilityDatabase::class.java,
             "pdf_utility.db",
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     @Provides
@@ -32,5 +33,12 @@ object DatabaseModule {
         database: PdfUtilityDatabase,
     ): RecentDocumentDao {
         return database.recentDocumentDao()
+    }
+
+    @Provides
+    fun provideBookmarkDao(
+        database: PdfUtilityDatabase,
+    ): BookmarkDao {
+        return database.bookmarkDao()
     }
 }

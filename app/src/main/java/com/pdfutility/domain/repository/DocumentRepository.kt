@@ -9,4 +9,7 @@ interface DocumentRepository {
     fun getRecentDocuments(): Flow<List<PdfDocument>>
     suspend fun markDocumentOpened(document: PdfDocument)
     suspend fun resolveDocumentDetails(uri: String): PdfDocument?
+    fun getBookmarkedDocuments(): Flow<List<PdfDocument>>
+    suspend fun toggleBookmark(document: PdfDocument): Boolean
+    suspend fun isBookmarked(uri: String): Boolean
 }
