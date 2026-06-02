@@ -3,10 +3,12 @@ package com.pdfutility.di
 import com.pdfutility.data.local.repository.ConversionRepositoryImpl
 import com.pdfutility.data.local.repository.DocumentRepositoryImpl
 import com.pdfutility.data.local.repository.MergeRepositoryImpl
+import com.pdfutility.data.local.repository.ReorderRepositoryImpl
 import com.pdfutility.data.local.repository.SplitRepositoryImpl
 import com.pdfutility.domain.repository.ConversionRepository
 import com.pdfutility.domain.repository.DocumentRepository
 import com.pdfutility.domain.repository.MergeRepository
+import com.pdfutility.domain.repository.ReorderRepository
 import com.pdfutility.domain.repository.SplitRepository
 import dagger.Binds
 import dagger.Module
@@ -41,4 +43,10 @@ abstract class RepositoryModule {
     abstract fun bindSplitRepository(
         impl: SplitRepositoryImpl,
     ): SplitRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindReorderRepository(
+        impl: ReorderRepositoryImpl,
+    ): ReorderRepository
 }

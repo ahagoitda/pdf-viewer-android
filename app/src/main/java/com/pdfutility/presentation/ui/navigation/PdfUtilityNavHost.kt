@@ -13,6 +13,7 @@ import com.pdfutility.presentation.ui.hwpxviewer.HwpxViewerScreen
 import com.pdfutility.presentation.ui.imagetopdf.ImageToPdfScreen
 import com.pdfutility.presentation.ui.mergepdf.MergePdfScreen
 import com.pdfutility.presentation.ui.pdfviewer.PdfViewerScreen
+import com.pdfutility.presentation.ui.reorderpages.ReorderPagesScreen
 import com.pdfutility.presentation.ui.splitpdf.SplitPdfScreen
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -28,6 +29,7 @@ sealed class Screen(val route: String) {
     data object ImageToPdf : Screen("image_to_pdf")
     data object MergePdf : Screen("merge_pdf")
     data object SplitPdf : Screen("split_pdf")
+    data object ReorderPages : Screen("reorder_pages")
 }
 
 @Composable
@@ -71,6 +73,9 @@ fun PdfUtilityNavHost(
                 },
                 onSplitPdfClick = {
                     navController.navigate(Screen.SplitPdf.route)
+                },
+                onReorderPagesClick = {
+                    navController.navigate(Screen.ReorderPages.route)
                 }
             )
         }
@@ -118,6 +123,16 @@ fun PdfUtilityNavHost(
             SplitPdfScreen(
                 onBackClick = { navController.popBackStack() },
                 onSplitSuccess = { outputPath ->
+                    navController.navigate(Screen.PdfViewer.createRoute("file://$outputPath")) {
+                        popUpTo(Screen.DocumentList.route)
+                    }
+                }
+            )
+        }
+        composable(Screen.ReorderPages.route) {
+            ReorderPagesScreen(
+                onBackClick = { navController.popBackStack() },
+                onReorderSuccess = { outputPath ->
                     navController.navigate(Screen.PdfViewer.createRoute("file://$outputPath")) {
                         popUpTo(Screen.DocumentList.route)
                     }

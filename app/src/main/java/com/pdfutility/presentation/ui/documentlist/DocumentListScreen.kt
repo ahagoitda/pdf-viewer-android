@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Merge
+import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -67,6 +68,7 @@ fun DocumentListScreen(
     onImageToPdfClick: () -> Unit,
     onMergePdfClick: () -> Unit,
     onSplitPdfClick: () -> Unit,
+    onReorderPagesClick: () -> Unit,
     viewModel: DocumentListViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -145,6 +147,13 @@ fun DocumentListScreen(
                 Icon(
                     imageVector = Icons.Default.CallSplit,
                     contentDescription = "PDF 분할",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            IconButton(onClick = onReorderPagesClick) {
+                Icon(
+                    imageVector = Icons.Default.Reorder,
+                    contentDescription = "페이지 재배열",
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
