@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.pdfutility.presentation.ui.documentlist.DocumentListScreen
+import com.pdfutility.presentation.ui.hwpxviewer.HwpxViewerScreen
 import com.pdfutility.presentation.ui.imagetopdf.ImageToPdfScreen
 import com.pdfutility.presentation.ui.pdfviewer.PdfViewerScreen
 import java.net.URLEncoder
@@ -19,22 +20,30 @@ sealed class Screen(val route: String) {
     data object PdfViewer : Screen("pdf_viewer/{pdfUri}") {
         fun createRoute(pdfUri: String) = "pdf_viewer/${URLEncoder.encode(pdfUri, StandardCharsets.UTF_8.toString())}"
     }
+    data object HwpxViewer : Screen("hwpx_viewer/{hwpxUri}") {
+        fun createRoute(hwpxUri: String) = "hwpx_viewer/${URLEncoder.encode(hwpxUri, StandardCharsets.UTF_8.toString())}"
+    }
     data object ImageToPdf : Screen("image_to_pdf")
 }
 
 @Composable
 fun PdfUtilityNavHost(
     navController: NavHostController = rememberNavController(),
-    initialPdfUri: String? = null,
-    onPdfUriHandled: () -> Unit = {}
+    initialDocumentUri: String? = null,
+    initialDocumentMimeType: String? = null,
+    onInitialDocumentHandled: () -> Unit = {}
 ) {
-    LaunchedEffect(initialPdfUri) {
-        if (!initialPdfUri.isNullOrEmpty()) {
-            navController.navigate(Screen.PdfViewer.createRoute(initialPdfUri)) {
-                // Ensure we go back to the document list screen when hitting back from viewer
+    LaunchedEffect(initialDocumentUri, initialDocumentMimeType) {
+        if (!initialDocumentUri.isNullOrEmpty()) {
+            val route = if (isHancomDocument(initialDocumentUri, initialDocumentMimeType)) {
+                Screen.HwpxViewer.createRoute(initialDocumentUri)
+            } else {
+                Screen.PdfViewer.createRoute(initialDocumentUri)
+            }
+            navController.navigate(route) {
                 popUpTo(Screen.DocumentList.route)
             }
-            onPdfUriHandled()
+            onInitialDocumentHandled()
         }
     }
 
@@ -46,6 +55,9 @@ fun PdfUtilityNavHost(
             DocumentListScreen(
                 onDocumentClick = { document ->
                     navController.navigate(Screen.PdfViewer.createRoute(document.uri))
+                },
+                onHwpxDocumentClick = { uri ->
+                    navController.navigate(Screen.HwpxViewer.createRoute(uri))
                 },
                 onImageToPdfClick = {
                     navController.navigate(Screen.ImageToPdf.route)
@@ -62,6 +74,16 @@ fun PdfUtilityNavHost(
                 onBackClick = { navController.popBackStack() }
             )
         }
+        composable(
+            route = Screen.HwpxViewer.route,
+            arguments = listOf(navArgument("hwpxUri") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val hwpxUri = backStackEntry.arguments?.getString("hwpxUri") ?: ""
+            HwpxViewerScreen(
+                hwpxUri = hwpxUri,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
         composable(Screen.ImageToPdf.route) {
             ImageToPdfScreen(
                 onBackClick = { navController.popBackStack() },
@@ -74,4 +96,16 @@ fun PdfUtilityNavHost(
             )
         }
     }
+}
+
+private fun isHancomDocument(uri: String, mimeType: String?): Boolean {
+    val isHancomMimeType = mimeType in setOf(
+        "application/vnd.hancom.hwpx",
+        "application/haansofthwp",
+        "application/x-hwp",
+    )
+    val hasHancomExtension = uri.substringBefore('?').let {
+        it.endsWith(".hwpx", ignoreCase = true) || it.endsWith(".hwp", ignoreCase = true)
+    }
+    return isHancomMimeType || hasHancomExtension
 }

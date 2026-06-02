@@ -61,6 +61,7 @@ import java.util.Locale
 @Composable
 fun DocumentListScreen(
     onDocumentClick: (PdfDocument) -> Unit,
+    onHwpxDocumentClick: (String) -> Unit,
     onImageToPdfClick: () -> Unit,
     viewModel: DocumentListViewModel = hiltViewModel()
 ) {
@@ -98,6 +99,21 @@ fun DocumentListScreen(
         }
     )
 
+    val openHwpxLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri ->
+            uri?.let {
+                try {
+                    val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    context.contentResolver.takePersistableUriPermission(it, takeFlags)
+                } catch (e: Exception) {
+                    // Ignore
+                }
+                onHwpxDocumentClick(it.toString())
+            }
+        }
+    )
+
     LaunchedEffect(Unit) {
         if (!state.permissionGranted && Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -107,6 +123,13 @@ fun DocumentListScreen(
     PdfUtilityScaffold(
         title = "PDF 목록",
         actions = {
+            IconButton(onClick = { openHwpxLauncher.launch(arrayOf("application/vnd.hancom.hwpx", "application/haansofthwp", "application/x-hwp", "application/zip", "application/octet-stream")) }) {
+                Icon(
+                    imageVector = Icons.Default.Description,
+                    contentDescription = "HWPX 열기",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
             IconButton(onClick = { openDocumentLauncher.launch(arrayOf("application/pdf")) }) {
                 Icon(
                     imageVector = Icons.Default.FolderOpen,

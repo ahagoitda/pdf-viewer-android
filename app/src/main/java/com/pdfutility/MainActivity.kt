@@ -18,7 +18,8 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private val pdfUriState = mutableStateOf<String?>(null)
+    private val documentUriState = mutableStateOf<String?>(null)
+    private val documentMimeTypeState = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,10 +33,15 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val pdfUri by pdfUriState
+                    val documentUri by documentUriState
+                    val documentMimeType by documentMimeTypeState
                     PdfUtilityNavHost(
-                        initialPdfUri = pdfUri,
-                        onPdfUriHandled = { pdfUriState.value = null }
+                        initialDocumentUri = documentUri,
+                        initialDocumentMimeType = documentMimeType,
+                        onInitialDocumentHandled = {
+                            documentUriState.value = null
+                            documentMimeTypeState.value = null
+                        }
                     )
                 }
             }
@@ -58,7 +64,8 @@ class MainActivity : ComponentActivity() {
                 } catch (e: Exception) {
                     // Ignore (e.g. if the intent sender did not grant persistable permission or it's a file:// scheme)
                 }
-                pdfUriState.value = uri.toString()
+                documentUriState.value = uri.toString()
+                documentMimeTypeState.value = intent.type ?: contentResolver.getType(uri)
             }
         }
     }

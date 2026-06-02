@@ -113,4 +113,9 @@ class ImageToPdfViewModel @Inject constructor(
     }
     
     fun getInterstitialAd(): InterstitialAd? = interstitialAd
+
+    override fun onCleared() {
+        super.onCleared()
+        interstitialAd = null
+    }
 }
