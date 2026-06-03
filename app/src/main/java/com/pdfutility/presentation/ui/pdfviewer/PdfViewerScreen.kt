@@ -6,6 +6,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
@@ -35,6 +36,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -76,6 +78,7 @@ fun PdfViewerScreen(
     
     var menuExpanded by remember { mutableStateOf(false) }
     var showSaveFormatDialog by remember { mutableStateOf(false) }
+    var showGoToPageDialog by remember { mutableStateOf(false) }
 
     // Zoom and pan gestures state variables
     var isPinching by remember { mutableStateOf(false) }
@@ -239,6 +242,35 @@ fun PdfViewerScreen(
         is ExportState.Idle -> {}
     }
 
+    if (showGoToPageDialog && state.pageCount > 0) {
+        var pageInput by remember { mutableStateOf((state.currentPage + 1).toString()) }
+        AlertDialog(
+            onDismissRequest = { showGoToPageDialog = false },
+            title = { Text("페이지 이동") },
+            text = {
+                OutlinedTextField(
+                    value = pageInput,
+                    onValueChange = { pageInput = it.filter { c -> c.isDigit() } },
+                    label = { Text("페이지 번호 (1-${state.pageCount})") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val pageNum = pageInput.toIntOrNull()?.minus(1)
+                    if (pageNum != null && pageNum in 0 until state.pageCount) {
+                        viewModel.onIntent(PdfViewerIntent.GoToPage(pageNum))
+                    }
+                    showGoToPageDialog = false
+                }) { Text("이동") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showGoToPageDialog = false }) { Text("취소") }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -324,7 +356,10 @@ fun PdfViewerScreen(
                     ) {
                         Text(
                             text = "${state.currentPage + 1} / ${state.pageCount}",
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier
+                                .clickable { showGoToPageDialog = true }
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
                         )
                     }
 
