@@ -3,6 +3,7 @@ package com.pdfutility.data.local.fileio
 import android.content.Context
 import android.net.Uri
 import com.pdfutility.domain.model.ConversionResult
+import com.pdfutility.data.local.fileio.FileNameSanitizer
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +29,8 @@ class PdfMergeDataSource @Inject constructor(
     ): ConversionResult = withContext(Dispatchers.IO) {
         val outputDir = File(context.filesDir, "pdf_output")
         outputDir.mkdirs()
-        val outputFile = File(outputDir, "$outputFileName.pdf")
+        val safeFileName = FileNameSanitizer.sanitize(outputFileName, "merged")
+        val outputFile = File(outputDir, "$safeFileName.pdf")
 
         val outputDoc = PDDocument()
         try {

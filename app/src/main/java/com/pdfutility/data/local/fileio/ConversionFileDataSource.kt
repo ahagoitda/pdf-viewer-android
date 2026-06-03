@@ -30,7 +30,8 @@ class ConversionFileDataSource @Inject constructor(
         if (!outputDir.exists()) {
             outputDir.mkdirs()
         }
-        val outputFile = File(outputDir, "$outputFileName.pdf")
+        val safeFileName = FileNameSanitizer.sanitize(outputFileName, "pdf")
+        val outputFile = File(outputDir, "$safeFileName.pdf")
 
         val pdfDocument = PdfDocument()
         val contentResolver = context.contentResolver

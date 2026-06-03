@@ -64,7 +64,8 @@ fun ImageToPdfScreen(
     LaunchedEffect(state.conversionResult) {
         state.conversionResult?.let { result ->
             if (result is ConversionResult.Success) {
-                viewModel.getInterstitialAd()?.show(context as android.app.Activity)
+                val activity = context as? android.app.Activity ?: return@let
+                viewModel.getInterstitialAd()?.show(activity)
             }
         }
     }

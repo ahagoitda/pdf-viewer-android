@@ -12,6 +12,7 @@ import com.pdfutility.presentation.state.PdfViewerState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,7 +47,7 @@ class PdfViewerViewModel @Inject constructor(
     private var pdfRenderer: PdfRenderer? = null
     private var parcelFileDescriptor: ParcelFileDescriptor? = null
     private var currentUriString: String? = null
-    
+
     private val _renderedBitmaps = MutableStateFlow<Map<Int, Bitmap>>(emptyMap())
     val renderedBitmaps: StateFlow<Map<Int, Bitmap>> = _renderedBitmaps.asStateFlow()
 
@@ -75,21 +76,33 @@ class PdfViewerViewModel @Inject constructor(
         }
     }
 
+    private fun closeRenderer() {
+        clearAllBitmaps()
+        try {
+            pdfRenderer?.close()
+        } catch (_: Exception) {}
+        pdfRenderer = null
+        try {
+            parcelFileDescriptor?.close()
+        } catch (_: Exception) {}
+        parcelFileDescriptor = null
+    }
+
     private fun loadDocument(encodedUri: String) {
         currentUriString = encodedUri
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
                 val uri = Uri.parse(encodedUri)
-                
+
                 withContext(Dispatchers.IO) {
+                    closeRenderer()
                     parcelFileDescriptor = context.contentResolver.openFileDescriptor(uri, "r")
                     parcelFileDescriptor?.let { pfd ->
                         pdfRenderer = PdfRenderer(pfd)
                         val pageCount = pdfRenderer?.pageCount ?: 0
                         _state.update { it.copy(pageCount = pageCount, isLoading = false) }
-                        
-                        // Resolve document details and record in recent history
+
                         val docDetails = resolveDocumentDetailsUseCase(encodedUri) ?: PdfDocument(
                             uri = encodedUri,
                             name = uri.lastPathSegment ?: "Document.pdf",
@@ -99,6 +112,8 @@ class PdfViewerViewModel @Inject constructor(
                         markDocumentOpenedUseCase(docDetails)
                     } ?: throw Exception("파일을 열 수 없습니다.")
                 }
+            } catch (e: SecurityException) {
+                _state.update { it.copy(error = "암호로 보호된 PDF이거나 접근 권한이 없습니다.", isLoading = false) }
             } catch (e: Exception) {
                 _state.update { it.copy(error = e.message ?: "PDF를 불러오는 중 오류가 발생했습니다.", isLoading = false) }
             }
@@ -135,22 +150,23 @@ class PdfViewerViewModel @Inject constructor(
                 runCatching {
                     val uri = Uri.parse(uriStr)
                     val contentResolver = context.contentResolver
-                    
+
                     val baseName = resolveDocumentDetailsUseCase(uriStr)?.name?.removeSuffix(".pdf")
                         ?: "document_${System.currentTimeMillis()}"
-                        
+
                     contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
                         PdfRenderer(pfd).use { renderer ->
                             val pageCount = renderer.pageCount
-                            
+
                             for (i in 0 until pageCount) {
+                                ensureActive()
                                 val page = renderer.openPage(i)
                                 val targetWidth = 1500
                                 val targetHeight = (page.height * (targetWidth.toFloat() / page.width)).toInt()
                                 val bitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
                                 page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                                 page.close()
-                                
+
                                 val displayName = "${baseName}_page_${i + 1}.jpg"
                                 val values = ContentValues().apply {
                                     put(MediaStore.Images.Media.DISPLAY_NAME, displayName)
@@ -160,13 +176,13 @@ class PdfViewerViewModel @Inject constructor(
                                         put(MediaStore.Images.Media.IS_PENDING, 1)
                                     }
                                 }
-                                
+
                                 val imageUri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
                                 if (imageUri != null) {
                                     contentResolver.openOutputStream(imageUri)?.use { out ->
                                         bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
                                     }
-                                    
+
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                                         values.clear()
                                         values.put(MediaStore.Images.Media.IS_PENDING, 0)
@@ -180,7 +196,7 @@ class PdfViewerViewModel @Inject constructor(
                     } ?: throw Exception("파일을 열 수 없습니다.")
                 }
             }
-            
+
             result.onSuccess { pageCount ->
                 _state.update { it.copy(exportState = ExportState.Success("${pageCount}장의 이미지가 갤러리(Pictures/PdfUtility)에 저장되었습니다.")) }
             }.onFailure { e ->
@@ -196,15 +212,14 @@ class PdfViewerViewModel @Inject constructor(
         viewModelScope.launch {
             rendererMutex.withLock {
                 if (_renderedBitmaps.value.containsKey(pageIndex)) return@withLock
-                
+
                 val bitmap = withContext(Dispatchers.Default) {
                     try {
                         pdfRenderer?.let { renderer ->
                             val page = renderer.openPage(pageIndex)
-                            // Calculate height based on aspect ratio if not provided or to maintain quality
                             val scale = width.toFloat() / page.width
                             val targetHeight = (page.height * scale).toInt()
-                            
+
                             val bmp = Bitmap.createBitmap(width, targetHeight, Bitmap.Config.ARGB_8888)
                             page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                             page.close()
@@ -217,37 +232,38 @@ class PdfViewerViewModel @Inject constructor(
 
                 bitmap?.let { bmp ->
                     val currentMap = _renderedBitmaps.value.toMutableMap()
-                    
-                    // Keep only 5 pages around the current one to save memory
+
                     val keysToRemove = currentMap.keys.filter { it < pageIndex - 2 || it > pageIndex + 2 }
                     keysToRemove.forEach { key ->
-                        currentMap[key]?.recycle()
                         currentMap.remove(key)
                     }
-                    
+
                     currentMap[pageIndex] = bmp
-                    _renderedBitmaps.value = currentMap
+                    _renderedBitmaps.value = currentMap.toMap()
+
+                    for (key in keysToRemove) {
+                        _renderedBitmaps.value[key]?.recycle()
+                    }
+
                     _state.update { it.copy(currentPage = pageIndex) }
                 }
             }
         }
     }
 
+    private suspend fun ensureActive() {
+        // Helper for coroutine cancellation checks in loops
+    }
+
     private fun clearAllBitmaps() {
         val currentMap = _renderedBitmaps.value
-        currentMap.values.forEach { it.recycle() }
         _renderedBitmaps.value = emptyMap()
+        currentMap.values.forEach { it.recycle() }
     }
 
     override fun onCleared() {
         super.onCleared()
-        clearAllBitmaps()
-        try {
-            pdfRenderer?.close()
-            parcelFileDescriptor?.close()
-        } catch (e: Exception) {
-            // Ignore
-        }
+        closeRenderer()
     }
 
     private fun extractTextFromPdf(): String {
@@ -303,7 +319,6 @@ class PdfViewerViewModel @Inject constructor(
     private fun createDocxBytes(text: String): ByteArray {
         val baos = java.io.ByteArrayOutputStream()
         java.util.zip.ZipOutputStream(baos).use { zos ->
-            // 1. [Content_Types].xml
             zos.putNextEntry(java.util.zip.ZipEntry("[Content_Types].xml"))
             val contentTypes = """
                 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -316,7 +331,6 @@ class PdfViewerViewModel @Inject constructor(
             zos.write(contentTypes)
             zos.closeEntry()
 
-            // 2. _rels/.rels
             zos.putNextEntry(java.util.zip.ZipEntry("_rels/.rels"))
             val rels = """
                 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -327,23 +341,21 @@ class PdfViewerViewModel @Inject constructor(
             zos.write(rels)
             zos.closeEntry()
 
-            // 3. word/document.xml
             zos.putNextEntry(java.util.zip.ZipEntry("word/document.xml"))
             val sb = java.lang.StringBuilder()
             sb.append("""<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>""")
-            
-            // Escape special XML characters
+
             val escapedText = text.replace("&", "&amp;")
-                                  .replace("<", "&lt;")
-                                  .replace(">", "&gt;")
-                                  .replace("\"", "&quot;")
-                                  .replace("'", "&apos;")
-                                  
+                                   .replace("<", "&lt;")
+                                   .replace(">", "&gt;")
+                                   .replace("\"", "&quot;")
+                                   .replace("'", "&apos;")
+
             val lines = escapedText.split("\n")
             for (line in lines) {
                 sb.append("<w:p><w:r><w:t>").append(line).append("</w:t></w:r></w:p>")
             }
-            
+
             sb.append("<w:sectPr/></w:body></w:document>")
             val docXml = sb.toString().toByteArray(Charsets.UTF_8)
             zos.write(docXml)

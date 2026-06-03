@@ -24,7 +24,8 @@ class PdfReorderDataSource @Inject constructor(
     ): ConversionResult = withContext(Dispatchers.IO) {
         val outputDir = File(context.filesDir, "pdf_output")
         outputDir.mkdirs()
-        val outputFile = File(outputDir, "$outputFileName.pdf")
+        val safeFileName = FileNameSanitizer.sanitize(outputFileName, "reordered")
+        val outputFile = File(outputDir, "$safeFileName.pdf")
 
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { input ->

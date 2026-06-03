@@ -27,7 +27,8 @@ class PdfSplitDataSource @Inject constructor(
     ): ConversionResult = withContext(Dispatchers.IO) {
         val outputDir = File(context.filesDir, "pdf_output")
         outputDir.mkdirs()
-        val outputFile = File(outputDir, "$outputFileName.pdf")
+        val safeFileName = FileNameSanitizer.sanitize(outputFileName, "split")
+        val outputFile = File(outputDir, "$safeFileName.pdf")
 
         try {
             context.contentResolver.openInputStream(sourceUri)?.use { input ->
@@ -66,7 +67,6 @@ class PdfSplitDataSource @Inject constructor(
     suspend fun getPageCount(sourceUri: Uri): Int = withContext(Dispatchers.IO) {
         try {
             context.contentResolver.openFileDescriptor(sourceUri, "r")?.use { pfd ->
-                ParcelFileDescriptor.AutoCloseOutputStream(pfd).close()
                 PdfRenderer(pfd).use { renderer -> renderer.pageCount }
             } ?: 0
         } catch (_: Exception) {
