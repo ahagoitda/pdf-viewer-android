@@ -1,9 +1,7 @@
 package com.pdfutility.presentation.ui.common
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -31,8 +29,6 @@ fun PdfUtilityScaffold(
         },
         floatingActionButton = floatingActionButton
     ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
-            content(paddingValues)
-        }
+        content(paddingValues)
     }
 }
