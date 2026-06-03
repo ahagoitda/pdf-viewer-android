@@ -41,6 +41,16 @@ class ImageToPdfViewModel @Inject constructor(
             is ImageToPdfIntent.SelectImages -> {
                 _state.update { it.copy(selectedImages = intent.images) }
             }
+            is ImageToPdfIntent.RemoveImage -> {
+                _state.update { it.copy(selectedImages = it.selectedImages.filter { img -> img.uri != intent.uri }) }
+            }
+            is ImageToPdfIntent.MoveImage -> {
+                val current = _state.value.selectedImages.toMutableList()
+                if (intent.fromIndex !in current.indices || intent.toIndex !in current.indices) return
+                val item = current.removeAt(intent.fromIndex)
+                current.add(intent.toIndex, item)
+                _state.update { it.copy(selectedImages = current) }
+            }
             is ImageToPdfIntent.SetOutputName -> {
                 _state.update { it.copy(outputFileName = intent.name) }
             }
