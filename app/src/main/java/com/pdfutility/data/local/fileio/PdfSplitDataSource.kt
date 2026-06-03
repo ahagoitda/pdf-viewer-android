@@ -20,6 +20,10 @@ import javax.inject.Singleton
 class PdfSplitDataSource @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
+    private companion object {
+        const val MAX_SOURCE_SIZE = 200L * 1024 * 1024
+    }
+
     suspend fun splitPdf(
         sourceUri: Uri,
         pageIndices: List<Int>,
@@ -31,6 +35,13 @@ class PdfSplitDataSource @Inject constructor(
         val outputFile = File(outputDir, "$safeFileName.pdf")
 
         try {
+            val fileSize = queryFileSize(sourceUri)
+            if (fileSize > MAX_SOURCE_SIZE) {
+                return@withContext ConversionResult.Error(
+                    "파일이 너무 큽니다 (${formatSize(fileSize)}). 200MB 이하 파일만 처리할 수 있습니다."
+                )
+            }
+
             context.contentResolver.openInputStream(sourceUri)?.use { input ->
                 PDDocument.load(input).use { sourceDoc ->
                     val totalSourcePages = sourceDoc.numberOfPages
@@ -100,6 +111,22 @@ class PdfSplitDataSource @Inject constructor(
             }
         } catch (_: Exception) {
             null
+        }
+    }
+
+    private fun queryFileSize(uri: Uri): Long {
+        return try {
+            context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { afd ->
+                afd.declaredLength
+            } ?: 0L
+        } catch (_: Exception) { 0L }
+    }
+
+    private fun formatSize(bytes: Long): String {
+        return when {
+            bytes >= 1024 * 1024 -> "%.1f MB".format(bytes / (1024.0 * 1024.0))
+            bytes >= 1024 -> "%.1f KB".format(bytes / 1024.0)
+            else -> "$bytes B"
         }
     }
 }

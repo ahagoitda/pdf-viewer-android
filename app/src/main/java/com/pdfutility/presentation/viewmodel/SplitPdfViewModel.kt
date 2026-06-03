@@ -13,11 +13,13 @@ import com.pdfutility.presentation.state.SplitPdfState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 @HiltViewModel
@@ -30,7 +32,11 @@ class SplitPdfViewModel @Inject constructor(
     private val _state = MutableStateFlow(SplitPdfState())
     val state: StateFlow<SplitPdfState> = _state.asStateFlow()
 
-    private val thumbnailCache = mutableMapOf<Int, Bitmap>()
+    private val thumbnailCache = ConcurrentHashMap<Int, Bitmap>()
+
+    private companion object {
+        const val MAX_THUMBNAILS = 20
+    }
 
     fun onIntent(intent: SplitPdfIntent) {
         when (intent) {
@@ -65,8 +71,13 @@ class SplitPdfViewModel @Inject constructor(
             }
 
             for (i in 0 until pageCount) {
+                ensureActive()
                 val thumbnail = pdfSplitDataSource.renderPageThumbnail(uri, i, 150)
                 thumbnail?.let { bmp ->
+                    if (thumbnailCache.size >= MAX_THUMBNAILS) {
+                        val oldest = thumbnailCache.keys.minOrNull()
+                        oldest?.let { thumbnailCache.remove(it)?.recycle() }
+                    }
                     thumbnailCache[i] = bmp
                     _state.update { it.copy(thumbnailBitmaps = thumbnailCache.toMap()) }
                 }

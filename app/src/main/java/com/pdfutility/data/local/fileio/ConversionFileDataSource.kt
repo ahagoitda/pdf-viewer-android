@@ -11,17 +11,25 @@ import android.os.Build
 import com.pdfutility.domain.model.ConversionResult
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.max
+import kotlin.math.min
 
 @Singleton
 class ConversionFileDataSource @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
+    private companion object {
+        const val A4_WIDTH_PT = 595
+        const val A4_HEIGHT_PT = 842
+        const val MAX_IMAGE_DIMENSION = 2000
+    }
+
     suspend fun convertImagesToPdf(
         images: List<Uri>,
         outputFileName: String,
@@ -35,10 +43,12 @@ class ConversionFileDataSource @Inject constructor(
 
         val pdfDocument = PdfDocument()
         val contentResolver = context.contentResolver
+        var successCount = 0
 
         try {
             for ((index, imageUri) in images.withIndex()) {
-                // 1. Get image bounds first
+                ensureActive()
+
                 val options = BitmapFactory.Options().apply {
                     inJustDecodeBounds = true
                 }
@@ -48,26 +58,38 @@ class ConversionFileDataSource @Inject constructor(
 
                 val originalWidth = options.outWidth
                 val originalHeight = options.outHeight
-                
+
                 if (originalWidth <= 0 || originalHeight <= 0) continue
 
-                // 2. Decode bitmap with downsampling if needed
                 val bitmap = decodeBitmapEfficiently(contentResolver, imageUri, originalWidth, originalHeight)
 
                 bitmap?.let {
-                    // 3. Create PDF page matching the actual bitmap size
-                    val pageInfo = PdfDocument.PageInfo.Builder(it.width, it.height, index + 1).create()
+                    val scale = min(
+                        A4_WIDTH_PT.toFloat() / it.width,
+                        A4_HEIGHT_PT.toFloat() / it.height
+                    )
+                    val scaledWidth = (it.width * scale).toInt()
+                    val scaledHeight = (it.height * scale).toInt()
+
+                    val pageInfo = PdfDocument.PageInfo.Builder(A4_WIDTH_PT, A4_HEIGHT_PT, successCount + 1).create()
                     val page = pdfDocument.startPage(pageInfo)
                     val canvas = page.canvas
-                    
-                    canvas.drawBitmap(it, 0f, 0f, null)
+
+                    val left = (A4_WIDTH_PT - scaledWidth) / 2f
+                    val top = (A4_HEIGHT_PT - scaledHeight) / 2f
+
+                    canvas.drawBitmap(it, left, top, null)
                     pdfDocument.finishPage(page)
-                    
-                    it.recycle() // Immediate recycle
+
+                    successCount++
+                    it.recycle()
                 }
             }
 
-            // 4. Write to file
+            if (successCount == 0) {
+                return@withContext ConversionResult.Error("변환할 수 있는 이미지가 없습니다. 지원하지 않는 형식이거나 손상된 파일일 수 있습니다.")
+            }
+
             FileOutputStream(outputFile).use { fos ->
                 pdfDocument.writeTo(fos)
             }
@@ -75,7 +97,7 @@ class ConversionFileDataSource @Inject constructor(
             ConversionResult.Success(
                 outputPath = outputFile.absolutePath,
                 outputName = outputFileName,
-                pageCount = images.size,
+                pageCount = successCount,
                 totalSize = outputFile.length()
             )
         } catch (e: Exception) {
@@ -91,9 +113,8 @@ class ConversionFileDataSource @Inject constructor(
         width: Int,
         height: Int
     ): Bitmap? {
-        val maxDimension = 2000 // Max dimension to prevent OOM
-        val sampleSize = if (width > maxDimension || height > maxDimension) {
-            max(width / maxDimension, height / maxDimension)
+        val sampleSize = if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+            max(width / MAX_IMAGE_DIMENSION, height / MAX_IMAGE_DIMENSION)
         } else {
             1
         }

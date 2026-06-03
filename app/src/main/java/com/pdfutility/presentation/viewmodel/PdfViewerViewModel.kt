@@ -266,9 +266,24 @@ class PdfViewerViewModel @Inject constructor(
         closeRenderer()
     }
 
+    private companion object {
+        const val MAX_TEXT_EXTRACTION_SIZE = 50L * 1024 * 1024
+    }
+
     private fun extractTextFromPdf(): String {
         val uriStr = currentUriString ?: throw Exception("PDF 파일이 로드되지 않았습니다.")
         val uri = Uri.parse(uriStr)
+
+        val fileSize = try {
+            context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { afd ->
+                afd.declaredLength
+            } ?: 0L
+        } catch (_: Exception) { 0L }
+
+        if (fileSize > MAX_TEXT_EXTRACTION_SIZE && fileSize > 0) {
+            throw Exception("파일이 너무 큽니다(${fileSize / (1024 * 1024)}MB). 50MB 이하 파일만 텍스트 추출 가능합니다.")
+        }
+
         context.contentResolver.openInputStream(uri)?.use { inputStream ->
             PDDocument.load(inputStream).use { pdDocument ->
                 val stripper = PDFTextStripper()
