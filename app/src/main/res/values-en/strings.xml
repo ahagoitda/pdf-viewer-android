@@ -42,6 +42,11 @@
     <string name="search_placeholder">Search text…</string>
     <string name="searching">Searching…</string>
     <string name="no_results">No results</string>
+    <string name="page_bookmark">Bookmark page</string>
+    <string name="remove_page_bookmark">Remove page bookmark</string>
+    <string name="bookmarked_page_count">%1$d bookmarks</string>
+    <string name="bookmarked_pages">Bookmarked pages</string>
+    <string name="search_result_page">Page %1$d</string>
     <string name="page_content_description">Page %1$d</string>
     <string name="share_failed">Share failed: %1$s</string>
     <string name="file_open_error">Cannot open file.</string>
@@ -65,6 +70,15 @@
     <string name="selected_images">Selected images (%1$d)</string>
     <string name="add_image">Add image</string>
     <string name="convert_to_pdf">Convert to PDF</string>
+    <string name="pdf_options">PDF options</string>
+    <string name="page_size">Page size</string>
+    <string name="page_size_a4">A4</string>
+    <string name="page_size_original">Original ratio</string>
+    <string name="orientation">Orientation</string>
+    <string name="portrait">Portrait</string>
+    <string name="landscape">Landscape</string>
+    <string name="margin">Margin: %1$dpt</string>
+    <string name="quality">Quality: %1$d%%</string>
     <string name="convert_success">Conversion successful</string>
     <string name="convert_fail">Conversion failed</string>
     <string name="converting_pdf">Converting to PDF…</string>
@@ -95,6 +109,10 @@
     <string name="select_all">Select all</string>
     <string name="deselect_all">Deselect all</string>
     <string name="extract_pages">Extract %1$d pages</string>
+    <string name="page_range">Page range</string>
+    <string name="page_range_hint">e.g. 1-3,5,8-10</string>
+    <string name="apply_range">Apply range</string>
+    <string name="invalid_page_range">Check the page range.</string>
     <string name="page_label">Page %1$d</string>
     <string name="page_selection_description">Page %1$d, %2$s</string>
     <string name="extract_success">Extraction complete</string>
@@ -130,6 +148,7 @@
     <string name="delete_confirm">Delete \'%1$s\'?</string>
     <string name="document_load_error">An error occurred while loading documents.</string>
     <string name="document_delete_error">An error occurred while deleting document.</string>
+    <string name="open">Open</string>
 
     <string name="hwpx_doc">HWPX Document</string>
     <string name="legacy_hwp_error">Legacy HWP binary format is not supported yet.\n\nPlease open an HWPX file instead.</string>

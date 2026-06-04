@@ -57,6 +57,8 @@ import com.pdfutility.domain.model.ConversionResult
 import com.pdfutility.presentation.intent.MergePdfIntent
 import com.pdfutility.presentation.state.SelectedPdf
 import com.pdfutility.util.formatFileSize
+import com.pdfutility.util.openPdfFile
+import com.pdfutility.util.sharePdfFile
 import com.pdfutility.presentation.viewmodel.MergePdfViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -323,6 +325,7 @@ private fun MergeResultDialog(
     result: ConversionResult,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(if (result is ConversionResult.Success) R.string.merge_success else R.string.merge_fail)) },
@@ -339,6 +342,18 @@ private fun MergeResultDialog(
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.confirm)) } },
+        dismissButton = {
+            if (result is ConversionResult.Success) {
+                Row {
+                    TextButton(onClick = { openPdfFile(context, result.outputPath) }) {
+                        Text(stringResource(R.string.open))
+                    }
+                    TextButton(onClick = { sharePdfFile(context, result.outputPath) }) {
+                        Text(stringResource(R.string.share))
+                    }
+                }
+            }
+        },
     )
 }
 

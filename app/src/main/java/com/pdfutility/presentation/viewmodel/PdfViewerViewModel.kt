@@ -16,6 +16,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -28,6 +29,8 @@ import android.content.ContentValues
 import android.provider.MediaStore
 import android.os.Build
 import com.pdfutility.R
+import com.pdfutility.data.local.db.dao.PageBookmarkDao
+import com.pdfutility.data.local.db.entity.PageBookmarkEntity
 import com.pdfutility.presentation.state.SearchResult
 import com.pdfutility.domain.model.PdfDocument
 import com.pdfutility.domain.usecase.MarkDocumentOpenedUseCase
@@ -40,7 +43,8 @@ import com.tom_roush.pdfbox.text.PDFTextStripper
 class PdfViewerViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val resolveDocumentDetailsUseCase: ResolveDocumentDetailsUseCase,
-    private val markDocumentOpenedUseCase: MarkDocumentOpenedUseCase
+    private val markDocumentOpenedUseCase: MarkDocumentOpenedUseCase,
+    private val pageBookmarkDao: PageBookmarkDao,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PdfViewerState())
@@ -49,6 +53,7 @@ class PdfViewerViewModel @Inject constructor(
     private var pdfRenderer: PdfRenderer? = null
     private var parcelFileDescriptor: ParcelFileDescriptor? = null
     private var currentUriString: String? = null
+    private var bookmarkObserverUri: String? = null
 
     private val _renderedBitmaps = MutableStateFlow<Map<Int, Bitmap>>(emptyMap())
     val renderedBitmaps: StateFlow<Map<Int, Bitmap>> = _renderedBitmaps.asStateFlow()
@@ -63,6 +68,7 @@ class PdfViewerViewModel @Inject constructor(
             }
             is PdfViewerIntent.GoToPage -> {
                 _state.update { it.copy(currentPage = intent.page) }
+                refreshCurrentBookmark()
             }
             is PdfViewerIntent.RenderPage -> {
                 renderPage(intent.pageIndex, intent.width, intent.height)
@@ -82,6 +88,7 @@ class PdfViewerViewModel @Inject constructor(
                 val visible = !_state.value.isSearchVisible
                 _state.update { it.copy(isSearchVisible = visible, searchQuery = "", searchResults = emptyList(), currentSearchIndex = -1) }
             }
+            is PdfViewerIntent.TogglePageBookmark -> togglePageBookmark()
         }
     }
 
@@ -119,6 +126,7 @@ class PdfViewerViewModel @Inject constructor(
                             lastModified = System.currentTimeMillis()
                         )
                         markDocumentOpenedUseCase(docDetails)
+                        observePageBookmarks(encodedUri)
                     } ?: throw Exception(context.getString(R.string.file_open_error))
                 }
             } catch (e: SecurityException) {
@@ -426,6 +434,7 @@ class PdfViewerViewModel @Inject constructor(
             _state.update {
                 it.copy(searchResults = results, currentSearchIndex = newIndex, isSearching = false, currentPage = newPage)
             }
+            refreshCurrentBookmark()
         }
     }
 
@@ -434,6 +443,7 @@ class PdfViewerViewModel @Inject constructor(
         if (results.isEmpty()) return
         val next = (_state.value.currentSearchIndex + 1) % results.size
         _state.update { it.copy(currentSearchIndex = next, currentPage = results[next].pageIndex) }
+        refreshCurrentBookmark()
     }
 
     private fun previousSearchResult() {
@@ -441,5 +451,39 @@ class PdfViewerViewModel @Inject constructor(
         if (results.isEmpty()) return
         val prev = if (_state.value.currentSearchIndex <= 0) results.size - 1 else _state.value.currentSearchIndex - 1
         _state.update { it.copy(currentSearchIndex = prev, currentPage = results[prev].pageIndex) }
+        refreshCurrentBookmark()
+    }
+
+    private fun observePageBookmarks(uri: String) {
+        if (bookmarkObserverUri == uri) return
+        bookmarkObserverUri = uri
+        viewModelScope.launch {
+            pageBookmarkDao.getBookmarks(uri).collectLatest { bookmarks ->
+                val pages = bookmarks.map { it.pageIndex }
+                _state.update {
+                    it.copy(
+                        bookmarkedPages = pages,
+                        isCurrentPageBookmarked = it.currentPage in pages,
+                    )
+                }
+            }
+        }
+    }
+
+    private fun togglePageBookmark() {
+        val uri = currentUriString ?: return
+        val page = _state.value.currentPage
+        viewModelScope.launch(Dispatchers.IO) {
+            if (pageBookmarkDao.isBookmarked(uri, page)) {
+                pageBookmarkDao.removeBookmark(uri, page)
+            } else {
+                pageBookmarkDao.addBookmark(PageBookmarkEntity(uri, page, System.currentTimeMillis()))
+            }
+        }
+    }
+
+    private fun refreshCurrentBookmark() {
+        val page = _state.value.currentPage
+        _state.update { it.copy(isCurrentPageBookmarked = page in it.bookmarkedPages) }
     }
 }

@@ -63,6 +63,8 @@ import com.pdfutility.domain.model.ConversionResult
 import com.pdfutility.presentation.intent.SplitPdfIntent
 import com.pdfutility.presentation.viewmodel.SplitPdfViewModel
 import com.pdfutility.util.formatFileSize
+import com.pdfutility.util.openPdfFile
+import com.pdfutility.util.sharePdfFile
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -202,6 +204,24 @@ private fun ColumnScope.PdfLoadedView(
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OutlinedTextField(
+            value = state.pageRangeInput,
+            onValueChange = { onIntent(SplitPdfIntent.SetPageRange(it)) },
+            label = { Text(stringResource(R.string.page_range)) },
+            placeholder = { Text(stringResource(R.string.page_range_hint)) },
+            modifier = Modifier.weight(1f),
+            singleLine = true,
+        )
+        Button(onClick = { onIntent(SplitPdfIntent.ApplyPageRange) }) {
+            Text(stringResource(R.string.apply_range))
+        }
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         IconButton(onClick = { onIntent(SplitPdfIntent.SelectAll) }) {
             Icon(Icons.Default.SelectAll, contentDescription = stringResource(R.string.select_all))
@@ -327,6 +347,7 @@ private fun SplitResultDialog(
     result: ConversionResult,
     onDismiss: () -> Unit,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(if (result is ConversionResult.Success) R.string.extract_success else R.string.extract_fail)) },
@@ -343,5 +364,17 @@ private fun SplitResultDialog(
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.confirm)) } },
+        dismissButton = {
+            if (result is ConversionResult.Success) {
+                Row {
+                    TextButton(onClick = { openPdfFile(context, result.outputPath) }) {
+                        Text(stringResource(R.string.open))
+                    }
+                    TextButton(onClick = { sharePdfFile(context, result.outputPath) }) {
+                        Text(stringResource(R.string.share))
+                    }
+                }
+            }
+        },
     )
 }

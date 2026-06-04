@@ -45,6 +45,8 @@ class SplitPdfViewModel @Inject constructor(
             is SplitPdfIntent.TogglePage -> togglePage(intent.pageIndex)
             is SplitPdfIntent.SelectAll -> selectAll()
             is SplitPdfIntent.DeselectAll -> deselectAll()
+            is SplitPdfIntent.SetPageRange -> setPageRange(intent.range)
+            is SplitPdfIntent.ApplyPageRange -> applyPageRange()
             is SplitPdfIntent.SetOutputName -> setOutputName(intent.name)
             is SplitPdfIntent.StartSplit -> startSplit()
             is SplitPdfIntent.Reset -> reset()
@@ -104,6 +106,19 @@ class SplitPdfViewModel @Inject constructor(
         _state.update { it.copy(selectedPages = emptySet()) }
     }
 
+    private fun setPageRange(range: String) {
+        _state.update { it.copy(pageRangeInput = range) }
+    }
+
+    private fun applyPageRange() {
+        val parsed = parsePageRange(_state.value.pageRangeInput, _state.value.pageCount)
+        if (parsed == null) {
+            _state.update { it.copy(error = context.getString(R.string.invalid_page_range)) }
+        } else {
+            _state.update { it.copy(selectedPages = parsed, error = null) }
+        }
+    }
+
     private fun setOutputName(name: String) {
         _state.update { it.copy(outputFileName = name) }
     }
@@ -146,5 +161,27 @@ class SplitPdfViewModel @Inject constructor(
         super.onCleared()
         thumbnailCache.values.forEach { it.recycle() }
         thumbnailCache.clear()
+    }
+
+    private fun parsePageRange(input: String, pageCount: Int): Set<Int>? {
+        if (input.isBlank() || pageCount <= 0) return emptySet()
+        val pages = linkedSetOf<Int>()
+        for (part in input.split(",")) {
+            val token = part.trim()
+            if (token.isEmpty()) return null
+            if ("-" in token) {
+                val bounds = token.split("-")
+                if (bounds.size != 2) return null
+                val start = bounds[0].trim().toIntOrNull() ?: return null
+                val end = bounds[1].trim().toIntOrNull() ?: return null
+                if (start <= 0 || end <= 0 || start > end || end > pageCount) return null
+                for (page in start..end) pages.add(page - 1)
+            } else {
+                val page = token.toIntOrNull() ?: return null
+                if (page <= 0 || page > pageCount) return null
+                pages.add(page - 1)
+            }
+        }
+        return pages
     }
 }

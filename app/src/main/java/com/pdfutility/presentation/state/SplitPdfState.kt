@@ -9,6 +9,7 @@ data class SplitPdfState(
     val sourceName: String = "",
     val pageCount: Int = 0,
     val selectedPages: Set<Int> = emptySet(),
+    val pageRangeInput: String = "",
     val thumbnailBitmaps: Map<Int, Bitmap> = emptyMap(),
     val isProcessing: Boolean = false,
     val outputFileName: String = "",

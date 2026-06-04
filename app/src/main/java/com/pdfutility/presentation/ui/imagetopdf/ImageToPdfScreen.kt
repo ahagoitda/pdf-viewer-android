@@ -31,7 +31,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -54,9 +56,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.pdfutility.R
 import com.pdfutility.domain.model.ConversionResult
+import com.pdfutility.domain.model.PdfPageOrientation
+import com.pdfutility.domain.model.PdfPageSize
 import com.pdfutility.presentation.intent.ImageToPdfIntent
 import com.pdfutility.presentation.state.ImageItem
 import com.pdfutility.presentation.viewmodel.ImageToPdfViewModel
+import com.pdfutility.util.openPdfFile
+import com.pdfutility.util.sharePdfFile
 import com.pdfutility.util.formatFileSize
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,6 +112,13 @@ fun ImageToPdfScreen(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(stringResource(R.string.output_file_hint)) },
                 singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ImagePdfOptionsView(
+                options = state.options,
+                onOptionsChange = { viewModel.onIntent(ImageToPdfIntent.SetOptions(it)) },
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -267,6 +280,7 @@ fun ConversionResultDialog(
     result: ConversionResult,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -290,6 +304,72 @@ fun ConversionResultDialog(
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.confirm))
             }
-        }
+        },
+        dismissButton = {
+            if (result is ConversionResult.Success) {
+                Row {
+                    TextButton(onClick = { openPdfFile(context, result.outputPath) }) {
+                        Text(stringResource(R.string.open))
+                    }
+                    TextButton(onClick = { sharePdfFile(context, result.outputPath) }) {
+                        Text(stringResource(R.string.share))
+                    }
+                }
+            }
+        },
     )
+}
+
+@Composable
+private fun ImagePdfOptionsView(
+    options: com.pdfutility.domain.model.ImagePdfOptions,
+    onOptionsChange: (com.pdfutility.domain.model.ImagePdfOptions) -> Unit,
+) {
+    Column {
+        Text(
+            text = stringResource(R.string.pdf_options),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.page_size), modifier = Modifier.width(88.dp))
+            RadioButton(
+                selected = options.pageSize == PdfPageSize.A4,
+                onClick = { onOptionsChange(options.copy(pageSize = PdfPageSize.A4)) },
+            )
+            Text(stringResource(R.string.page_size_a4))
+            RadioButton(
+                selected = options.pageSize == PdfPageSize.Original,
+                onClick = { onOptionsChange(options.copy(pageSize = PdfPageSize.Original)) },
+            )
+            Text(stringResource(R.string.page_size_original))
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.orientation), modifier = Modifier.width(88.dp))
+            RadioButton(
+                selected = options.orientation == PdfPageOrientation.Portrait,
+                onClick = { onOptionsChange(options.copy(orientation = PdfPageOrientation.Portrait)) },
+            )
+            Text(stringResource(R.string.portrait))
+            RadioButton(
+                selected = options.orientation == PdfPageOrientation.Landscape,
+                onClick = { onOptionsChange(options.copy(orientation = PdfPageOrientation.Landscape)) },
+            )
+            Text(stringResource(R.string.landscape))
+        }
+        Text(stringResource(R.string.margin, options.marginPt))
+        Slider(
+            value = options.marginPt.toFloat(),
+            onValueChange = { onOptionsChange(options.copy(marginPt = it.toInt())) },
+            valueRange = 0f..72f,
+            steps = 5,
+        )
+        Text(stringResource(R.string.quality, options.quality))
+        Slider(
+            value = options.quality.toFloat(),
+            onValueChange = { onOptionsChange(options.copy(quality = it.toInt())) },
+            valueRange = 50f..100f,
+            steps = 4,
+        )
+    }
 }

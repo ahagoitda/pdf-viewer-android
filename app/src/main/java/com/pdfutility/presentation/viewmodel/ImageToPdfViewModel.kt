@@ -55,6 +55,9 @@ class ImageToPdfViewModel @Inject constructor(
             is ImageToPdfIntent.SetOutputName -> {
                 _state.update { it.copy(outputFileName = intent.name) }
             }
+            is ImageToPdfIntent.SetOptions -> {
+                _state.update { it.copy(options = intent.options) }
+            }
             is ImageToPdfIntent.StartConversion -> startConversion()
             is ImageToPdfIntent.Reset -> {
                 _state.value = ImageToPdfState()
@@ -82,7 +85,7 @@ class ImageToPdfViewModel @Inject constructor(
             // For now, we update to 0.5 when starting and 1.0 when finished as a simple indicator.
             _state.update { it.copy(conversionProgress = 0.5f) }
             
-            val result = convertImagesToPdfUseCase(images, name)
+            val result = convertImagesToPdfUseCase(images, name, _state.value.options)
             
             _state.update {
                 it.copy(

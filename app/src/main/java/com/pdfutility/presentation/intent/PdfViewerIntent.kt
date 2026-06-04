@@ -17,4 +17,5 @@ sealed interface PdfViewerIntent {
     data object NextSearchResult : PdfViewerIntent
     data object PreviousSearchResult : PdfViewerIntent
     data object ToggleSearch : PdfViewerIntent
+    data object TogglePageBookmark : PdfViewerIntent
 }

@@ -14,7 +14,9 @@ data class PdfViewerState(
     val searchResults: List<SearchResult> = emptyList(),
     val currentSearchIndex: Int = -1,
     val isSearchVisible: Boolean = false,
-    val isSearching: Boolean = false
+    val isSearching: Boolean = false,
+    val bookmarkedPages: List<Int> = emptyList(),
+    val isCurrentPageBookmarked: Boolean = false,
 )
 
 sealed interface ExportState {

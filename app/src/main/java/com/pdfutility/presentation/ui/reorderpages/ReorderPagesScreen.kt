@@ -60,6 +60,8 @@ import com.pdfutility.domain.model.ConversionResult
 import com.pdfutility.presentation.intent.ReorderPagesIntent
 import com.pdfutility.presentation.viewmodel.ReorderPagesViewModel
 import com.pdfutility.util.formatFileSize
+import com.pdfutility.util.openPdfFile
+import com.pdfutility.util.sharePdfFile
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -303,6 +305,7 @@ private fun ReorderResultDialog(
     result: ConversionResult,
     onDismiss: () -> Unit,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(if (result is ConversionResult.Success) R.string.reorder_success else R.string.reorder_fail)) },
@@ -319,6 +322,18 @@ private fun ReorderResultDialog(
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.confirm)) } },
+        dismissButton = {
+            if (result is ConversionResult.Success) {
+                Row {
+                    TextButton(onClick = { openPdfFile(context, result.outputPath) }) {
+                        Text(stringResource(R.string.open))
+                    }
+                    TextButton(onClick = { sharePdfFile(context, result.outputPath) }) {
+                        Text(stringResource(R.string.share))
+                    }
+                }
+            }
+        },
     )
 }
 

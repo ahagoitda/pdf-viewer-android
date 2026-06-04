@@ -6,6 +6,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pdfutility.data.local.db.PdfUtilityDatabase
 import com.pdfutility.data.local.db.dao.BookmarkDao
+import com.pdfutility.data.local.db.dao.PageBookmarkDao
 import com.pdfutility.data.local.db.dao.RecentDocumentDao
 import dagger.Module
 import dagger.Provides
@@ -26,6 +27,14 @@ object DatabaseModule {
         }
     }
 
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `page_bookmarks` (`uri` TEXT NOT NULL, `page_index` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, PRIMARY KEY(`uri`, `page_index`))"
+            )
+        }
+    }
+
     @Provides
     @Singleton
     fun provideDatabase(
@@ -36,8 +45,8 @@ object DatabaseModule {
             PdfUtilityDatabase::class.java,
             "pdf_utility.db",
         )
-            .addMigrations(MIGRATION_1_2)
-            .fallbackToDestructiveMigration()
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }
 
@@ -53,5 +62,12 @@ object DatabaseModule {
         database: PdfUtilityDatabase,
     ): BookmarkDao {
         return database.bookmarkDao()
+    }
+
+    @Provides
+    fun providePageBookmarkDao(
+        database: PdfUtilityDatabase,
+    ): PageBookmarkDao {
+        return database.pageBookmarkDao()
     }
 }

@@ -9,6 +9,9 @@ import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.os.Build
 import com.pdfutility.domain.model.ConversionResult
+import com.pdfutility.domain.model.ImagePdfOptions
+import com.pdfutility.domain.model.PdfPageOrientation
+import com.pdfutility.domain.model.PdfPageSize
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
@@ -33,6 +36,7 @@ class ConversionFileDataSource @Inject constructor(
     suspend fun convertImagesToPdf(
         images: List<Uri>,
         outputFileName: String,
+        options: ImagePdfOptions = ImagePdfOptions(),
     ): ConversionResult = withContext(Dispatchers.IO) {
         val outputDir = File(context.filesDir, "pdf_output")
         if (!outputDir.exists()) {
@@ -49,34 +53,37 @@ class ConversionFileDataSource @Inject constructor(
             for ((index, imageUri) in images.withIndex()) {
                 ensureActive()
 
-                val options = BitmapFactory.Options().apply {
+                val bitmapOptions = BitmapFactory.Options().apply {
                     inJustDecodeBounds = true
                 }
                 contentResolver.openInputStream(imageUri)?.use { stream ->
-                    BitmapFactory.decodeStream(stream, null, options)
+                    BitmapFactory.decodeStream(stream, null, bitmapOptions)
                 }
 
-                val originalWidth = options.outWidth
-                val originalHeight = options.outHeight
+                val originalWidth = bitmapOptions.outWidth
+                val originalHeight = bitmapOptions.outHeight
 
                 if (originalWidth <= 0 || originalHeight <= 0) continue
 
                 val bitmap = decodeBitmapEfficiently(contentResolver, imageUri, originalWidth, originalHeight)
 
                 bitmap?.let {
+                    val (pageWidth, pageHeight) = pageDimensions(it.width, it.height, options)
+                    val contentWidth = (pageWidth - options.marginPt * 2).coerceAtLeast(1)
+                    val contentHeight = (pageHeight - options.marginPt * 2).coerceAtLeast(1)
                     val scale = min(
-                        A4_WIDTH_PT.toFloat() / it.width,
-                        A4_HEIGHT_PT.toFloat() / it.height
+                        contentWidth.toFloat() / it.width,
+                        contentHeight.toFloat() / it.height
                     )
                     val scaledWidth = (it.width * scale).toInt()
                     val scaledHeight = (it.height * scale).toInt()
 
-                    val pageInfo = PdfDocument.PageInfo.Builder(A4_WIDTH_PT, A4_HEIGHT_PT, successCount + 1).create()
+                    val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, successCount + 1).create()
                     val page = pdfDocument.startPage(pageInfo)
                     val canvas = page.canvas
 
-                    val left = (A4_WIDTH_PT - scaledWidth) / 2f
-                    val top = (A4_HEIGHT_PT - scaledHeight) / 2f
+                    val left = (pageWidth - scaledWidth) / 2f
+                    val top = (pageHeight - scaledHeight) / 2f
 
                     canvas.drawBitmap(it, left, top, null)
                     pdfDocument.finishPage(page)
@@ -104,6 +111,17 @@ class ConversionFileDataSource @Inject constructor(
             ConversionResult.Error(e.message ?: "변환 중 오류가 발생했습니다.")
         } finally {
             pdfDocument.close()
+        }
+    }
+
+    private fun pageDimensions(width: Int, height: Int, options: ImagePdfOptions): Pair<Int, Int> {
+        val base = when (options.pageSize) {
+            PdfPageSize.A4 -> A4_WIDTH_PT to A4_HEIGHT_PT
+            PdfPageSize.Original -> width to height
+        }
+        return when (options.orientation) {
+            PdfPageOrientation.Portrait -> min(base.first, base.second) to max(base.first, base.second)
+            PdfPageOrientation.Landscape -> max(base.first, base.second) to min(base.first, base.second)
         }
     }
 

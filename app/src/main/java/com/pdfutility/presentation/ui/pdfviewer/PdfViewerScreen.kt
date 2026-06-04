@@ -34,6 +34,8 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -66,6 +68,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -296,6 +302,14 @@ fun PdfViewerScreen(
                     IconButton(onClick = { viewModel.onIntent(PdfViewerIntent.ToggleSearch) }) {
                         Icon(imageVector = Icons.Default.Search, contentDescription = stringResource(R.string.search))
                     }
+                    IconButton(onClick = { viewModel.onIntent(PdfViewerIntent.TogglePageBookmark) }) {
+                        Icon(
+                            imageVector = if (state.isCurrentPageBookmarked) Icons.Default.Star else Icons.Outlined.StarBorder,
+                            contentDescription = stringResource(
+                                if (state.isCurrentPageBookmarked) R.string.remove_page_bookmark else R.string.page_bookmark
+                            )
+                        )
+                    }
                     IconButton(onClick = { 
                         val newZoom = (state.zoomLevel - 0.2f).coerceIn(1f, 5f)
                         viewModel.onIntent(PdfViewerIntent.SetZoom(newZoom)) 
@@ -339,6 +353,22 @@ fun PdfViewerScreen(
                                     viewModel.onIntent(PdfViewerIntent.ExportAsImages)
                                 }
                             )
+                            if (state.bookmarkedPages.isNotEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.bookmarked_pages)) },
+                                    onClick = {},
+                                    enabled = false,
+                                )
+                                state.bookmarkedPages.forEach { pageIndex ->
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.page_label, pageIndex + 1)) },
+                                        onClick = {
+                                            menuExpanded = false
+                                            viewModel.onIntent(PdfViewerIntent.GoToPage(pageIndex))
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -400,6 +430,20 @@ fun PdfViewerScreen(
                                         style = MaterialTheme.typography.bodySmall,
                                         modifier = Modifier.padding(start = 8.dp)
                                     )
+                                    if (total > 0 && idx in state.searchResults.indices) {
+                                        val current = state.searchResults[idx]
+                                        Text(
+                                            text = stringResource(R.string.search_result_page, current.pageIndex + 1),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.padding(start = 8.dp, top = 4.dp),
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                        Text(
+                                            text = highlightedSnippet(current.snippet, state.searchQuery),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            modifier = Modifier.padding(start = 8.dp, top = 2.dp),
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -412,7 +456,7 @@ fun PdfViewerScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "${state.currentPage + 1} / ${state.pageCount}",
+                            text = "${state.currentPage + 1} / ${state.pageCount} · ${stringResource(R.string.bookmarked_page_count, state.bookmarkedPages.size)}",
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier
                                 .clickable { showGoToPageDialog = true }
@@ -486,6 +530,29 @@ private fun getBoundedOffset(offset: Offset, scale: Float, size: IntSize): Offse
         x = offset.x.coerceIn(-maxX, maxX),
         y = offset.y.coerceIn(-maxY, maxY)
     )
+}
+
+@Composable
+private fun highlightedSnippet(snippet: String, query: String) = buildAnnotatedString {
+    if (query.isBlank()) {
+        append(snippet)
+        return@buildAnnotatedString
+    }
+    val matchStart = snippet.indexOf(query, ignoreCase = true)
+    if (matchStart < 0) {
+        append(snippet)
+        return@buildAnnotatedString
+    }
+    append(snippet.substring(0, matchStart))
+    withStyle(
+        SpanStyle(
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold,
+        )
+    ) {
+        append(snippet.substring(matchStart, matchStart + query.length))
+    }
+    append(snippet.substring(matchStart + query.length))
 }
 
 private fun sharePdf(context: Context, uriString: String) {
