@@ -52,6 +52,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.pdfutility.domain.model.ConversionResult
 import com.pdfutility.presentation.intent.MergePdfIntent
 import com.pdfutility.presentation.state.SelectedPdf
+import com.pdfutility.util.formatFileSize
 import com.pdfutility.presentation.viewmodel.MergePdfViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -340,10 +341,4 @@ private fun queryPdfMetadata(context: android.content.Context, uri: Uri): Pair<S
     return name to size
 }
 
-private fun formatFileSize(bytes: Long): String {
-    return when {
-        bytes >= 1024 * 1024 -> "%.1f MB".format(bytes / (1024.0 * 1024.0))
-        bytes >= 1024 -> "%.1f KB".format(bytes / 1024.0)
-        else -> "$bytes B"
-    }
-}
+

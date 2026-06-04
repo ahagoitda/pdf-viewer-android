@@ -13,3 +13,9 @@
 
 # pdfbox-android references this optional JPEG2000 decoder when available.
 -dontwarn com.gemalto.jp2.JP2Decoder
+
+# PDFBox — keep reflection-used classes
+-keep class org.apache.pdfbox.** { *; }
+-keep class com.tom_roush.pdfbox.** { *; }
+-dontwarn org.apache.pdfbox.**
+-dontwarn com.tom_roush.pdfbox.**

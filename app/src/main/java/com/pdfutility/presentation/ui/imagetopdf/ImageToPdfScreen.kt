@@ -53,6 +53,7 @@ import com.pdfutility.domain.model.ConversionResult
 import com.pdfutility.presentation.intent.ImageToPdfIntent
 import com.pdfutility.presentation.state.ImageItem
 import com.pdfutility.presentation.viewmodel.ImageToPdfViewModel
+import com.pdfutility.util.formatFileSize
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -261,7 +262,7 @@ fun ConversionResultDialog(
                     Column {
                         Text("파일명: ${result.outputName}.pdf")
                         Text("페이지 수: ${result.pageCount}장")
-                        Text("크기: ${android.text.format.Formatter.formatShortFileSize(LocalContext.current, result.totalSize)}")
+                        Text("크기: ${formatFileSize(result.totalSize)}")
                     }
                 }
                 is ConversionResult.Error -> {

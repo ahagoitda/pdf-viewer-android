@@ -39,7 +39,7 @@ class MergePdfViewModel @Inject constructor(
     private fun addPdfs(pdfs: List<SelectedPdf>) {
         val existingUris = _state.value.selectedPdfs.map { it.uri }.toSet()
         val newPdfs = pdfs.filter { it.uri !in existingUris }
-        _state.update { it.copy(selectedPdfs = it.selectedPdfs + newPdfs) }
+        _state.update { it.copy(selectedPdfs = it.selectedPdfs + newPdfs, error = null) }
     }
 
     private fun removePdf(uri: android.net.Uri) {

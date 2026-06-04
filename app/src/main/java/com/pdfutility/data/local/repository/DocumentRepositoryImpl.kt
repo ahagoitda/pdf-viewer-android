@@ -7,8 +7,10 @@ import com.pdfutility.data.mapper.toDomain
 import com.pdfutility.data.mapper.toEntity
 import com.pdfutility.domain.model.PdfDocument
 import com.pdfutility.domain.repository.DocumentRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,7 +22,7 @@ class DocumentRepositoryImpl @Inject constructor(
 ) : DocumentRepository {
 
     override suspend fun getPdfDocuments(): Result<List<PdfDocument>> {
-        return fileDataSource.queryPdfFiles()
+        return withContext(Dispatchers.IO) { fileDataSource.queryPdfFiles() }
     }
 
     override suspend fun deleteDocument(uri: String): Result<Unit> {
