@@ -47,10 +47,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pdfutility.R
 import com.pdfutility.domain.model.ConversionResult
 import com.pdfutility.presentation.intent.ReorderPagesIntent
 import com.pdfutility.presentation.viewmodel.ReorderPagesViewModel
@@ -74,10 +79,10 @@ fun ReorderPagesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("페이지 재배열") },
+                title = { Text(stringResource(R.string.reorder_pages), modifier = Modifier.semantics { heading() }) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
             )
@@ -96,11 +101,11 @@ fun ReorderPagesScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Button(onClick = { pdfPicker.launch(arrayOf("application/pdf")) }) {
-                        Text("PDF 파일 선택")
+                        Text(stringResource(R.string.select_pdf))
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "페이지 순서를 변경할 PDF를 선택하세요",
+                        stringResource(R.string.reorder_hint),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -133,10 +138,10 @@ fun ReorderPagesScreen(
         state.error?.let { error ->
             AlertDialog(
                 onDismissRequest = { viewModel.onIntent(ReorderPagesIntent.Reset) },
-                title = { Text("오류") },
+                title = { Text(stringResource(R.string.error)) },
                 text = { Text(error) },
                 confirmButton = {
-                    TextButton(onClick = { viewModel.onIntent(ReorderPagesIntent.Reset) }) { Text("확인") }
+                    TextButton(onClick = { viewModel.onIntent(ReorderPagesIntent.Reset) }) { Text(stringResource(R.string.confirm)) }
                 },
             )
         }
@@ -163,7 +168,7 @@ private fun ColumnScope.PdfLoadedView(
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            text = "${state.pageCount}페이지",
+            text = stringResource(R.string.page_count, state.pageCount),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -174,7 +179,7 @@ private fun ColumnScope.PdfLoadedView(
     OutlinedTextField(
         value = state.outputFileName,
         onValueChange = { onIntent(ReorderPagesIntent.SetOutputName(it)) },
-        label = { Text("출력 파일 이름") },
+        label = { Text(stringResource(R.string.output_file_name)) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
     )
@@ -209,7 +214,7 @@ private fun ColumnScope.PdfLoadedView(
             CircularProgressIndicator(modifier = Modifier.size(18.dp), color = MaterialTheme.colorScheme.onPrimary)
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Text("재배열된 PDF 저장")
+        Text(stringResource(R.string.save_reorder))
     }
 }
 
@@ -223,8 +228,11 @@ private fun PageReorderItem(
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
 ) {
+    val pageLabel = stringResource(R.string.page_label, originalPageIndex + 1)
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = pageLabel },
         tonalElevation = 1.dp,
         shape = MaterialTheme.shapes.small,
     ) {
@@ -265,17 +273,25 @@ private fun PageReorderItem(
             Spacer(modifier = Modifier.width(8.dp))
 
             Text(
-                text = "${originalPageIndex + 1}페이지",
+                text = pageLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f),
             )
 
             Column {
                 IconButton(onClick = onMoveUp, enabled = canMoveUp) {
-                    Icon(Icons.Default.ArrowUpward, contentDescription = "위로", modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Default.ArrowUpward,
+                        contentDescription = stringResource(R.string.move_item_up, pageLabel),
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
                 IconButton(onClick = onMoveDown, enabled = canMoveDown) {
-                    Icon(Icons.Default.ArrowDownward, contentDescription = "아래로", modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Default.ArrowDownward,
+                        contentDescription = stringResource(R.string.move_item_down, pageLabel),
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }
@@ -289,20 +305,20 @@ private fun ReorderResultDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (result is ConversionResult.Success) "재배열 완료" else "재배열 실패") },
+        title = { Text(stringResource(if (result is ConversionResult.Success) R.string.reorder_success else R.string.reorder_fail)) },
         text = {
             when (result) {
                 is ConversionResult.Success -> {
                     Column {
-                        Text("파일명: ${result.outputName}.pdf")
-                        Text("페이지 수: ${result.pageCount}장")
-                        Text("크기: ${formatFileSize(result.totalSize)}")
+                        Text(stringResource(R.string.file_name_label, result.outputName))
+                        Text(stringResource(R.string.page_count_label, result.pageCount))
+                        Text(stringResource(R.string.size_label, formatFileSize(result.totalSize)))
                     }
                 }
                 is ConversionResult.Error -> Text(result.message)
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("확인") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.confirm)) } },
     )
 }
 

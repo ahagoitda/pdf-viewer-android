@@ -21,8 +21,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CallSplit
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FolderOpen
@@ -53,10 +53,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pdfutility.R
 import com.pdfutility.domain.model.PdfDocument
 import com.pdfutility.presentation.intent.DocumentListIntent
 import com.pdfutility.presentation.state.DocumentListState
@@ -133,47 +140,47 @@ fun DocumentListScreen(
     }
 
     PdfUtilityScaffold(
-        title = "문서 목록",
+        title = stringResource(R.string.document_list),
         actions = {
             IconButton(onClick = { openHwpxLauncher.launch(arrayOf("application/vnd.hancom.hwpx", "application/haansofthwp", "application/x-hwp", "application/octet-stream")) }) {
                 Icon(
                     imageVector = Icons.Default.Description,
-                    contentDescription = "HWPX 열기",
+                    contentDescription = stringResource(R.string.open_hwpx),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
             IconButton(onClick = onMergePdfClick) {
                 Icon(
                     imageVector = Icons.Default.Merge,
-                    contentDescription = "PDF 병합",
+                    contentDescription = stringResource(R.string.pdf_merge),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
             IconButton(onClick = onSplitPdfClick) {
                 Icon(
-                    imageVector = Icons.Default.CallSplit,
-                    contentDescription = "PDF 분할",
+                    imageVector = Icons.AutoMirrored.Filled.CallSplit,
+                    contentDescription = stringResource(R.string.pdf_split),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
             IconButton(onClick = onReorderPagesClick) {
                 Icon(
                     imageVector = Icons.Default.Reorder,
-                    contentDescription = "페이지 재배열",
+                    contentDescription = stringResource(R.string.reorder_pages),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
             IconButton(onClick = { openDocumentLauncher.launch(arrayOf("application/pdf")) }) {
                 Icon(
                     imageVector = Icons.Default.FolderOpen,
-                    contentDescription = "기기 PDF 열기",
+                    contentDescription = stringResource(R.string.open_device_pdf),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onImageToPdfClick) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "이미지를 PDF로 변환")
+                Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(R.string.image_to_pdf))
             }
         }
     ) {
@@ -187,12 +194,12 @@ fun DocumentListScreen(
                     Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
-                        text = { Text("전체") }
+                        text = { Text(stringResource(R.string.tab_all)) }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
-                        text = { Text("즐겨찾기") }
+                        text = { Text(stringResource(R.string.tab_bookmarks)) }
                     )
                 }
 
@@ -234,7 +241,7 @@ private fun AllDocumentsView(
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             if (state.recentDocuments.isNotEmpty()) {
                 item {
-                    SectionHeader("최근 열람 문서")
+                    SectionHeader(stringResource(R.string.recent_docs))
                 }
                 items(state.recentDocuments) { doc ->
                     DocumentItem(
@@ -254,13 +261,13 @@ private fun AllDocumentsView(
             }
 
             item {
-                SectionHeader("모든 문서")
+                SectionHeader(stringResource(R.string.all_docs))
             }
 
             if (state.documents.isEmpty()) {
                 item {
                     Text(
-                        text = "문서가 없습니다.",
+                        text = stringResource(R.string.no_documents),
                         modifier = Modifier.padding(16.dp),
                         color = Color.Gray
                     )
@@ -302,7 +309,7 @@ private fun BookmarkedDocumentsView(
                 tint = Color.Gray
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = "즐겨찾기한 문서가 없습니다", color = Color.Gray, fontSize = 18.sp)
+            Text(text = stringResource(R.string.no_bookmarks), color = Color.Gray, fontSize = 18.sp)
         }
     } else {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -328,7 +335,9 @@ fun SectionHeader(title: String) {
         text = title,
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(16.dp, 16.dp, 16.dp, 8.dp)
+        modifier = Modifier
+            .padding(16.dp, 16.dp, 16.dp, 8.dp)
+            .semantics { heading() }
     )
 }
 
@@ -343,10 +352,15 @@ fun DocumentItem(
     val context = LocalContext.current
     val fileSize = Formatter.formatShortFileSize(context, document.size)
     val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(document.lastModified))
+    val openDescription = stringResource(R.string.open_document, document.name)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .semantics {
+                role = Role.Button
+                contentDescription = openDescription
+            }
             .clickable { onClick() }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -373,7 +387,7 @@ fun DocumentItem(
         IconButton(onClick = onBookmark) {
             Icon(
                 imageVector = if (isBookmarked) Icons.Default.Star else Icons.Outlined.StarOutline,
-                contentDescription = if (isBookmarked) "즐겨찾기 해제" else "즐겨찾기",
+                contentDescription = stringResource(if (isBookmarked) R.string.unbookmark else R.string.bookmark),
                 tint = if (isBookmarked) MaterialTheme.colorScheme.primary else Color.Gray
             )
         }
@@ -387,10 +401,10 @@ fun PermissionRequiredView(onRequestPermission: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "파일 읽기 권한이 필요합니다.")
+        Text(text = stringResource(R.string.permission_required))
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = onRequestPermission) {
-            Text(text = "권한 요청")
+            Text(text = stringResource(R.string.request_permission))
         }
     }
 }
@@ -412,7 +426,7 @@ fun ErrorView(message: String, onRetry: () -> Unit) {
         Text(text = message, color = Color.Red)
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = onRetry) {
-            Text(text = "다시 시도")
+            Text(text = stringResource(R.string.retry))
         }
     }
 }
@@ -431,7 +445,7 @@ fun EmptyStateView() {
             tint = Color.LightGray
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Text(text = "찾은 PDF 문서가 없습니다.", color = Color.Gray, fontSize = 18.sp)
+        Text(text = stringResource(R.string.no_pdfs_found), color = Color.Gray, fontSize = 18.sp)
     }
 }
 
@@ -443,16 +457,16 @@ fun DeleteConfirmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = "문서 삭제") },
-        text = { Text(text = "'$documentName' 문서를 삭제하시겠습니까?") },
+        title = { Text(text = stringResource(R.string.delete_document)) },
+        text = { Text(text = stringResource(R.string.delete_confirm, documentName)) },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text(text = "삭제", color = Color.Red)
+                Text(text = stringResource(R.string.delete), color = Color.Red)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "취소")
+                Text(text = stringResource(R.string.cancel))
             }
         }
     )

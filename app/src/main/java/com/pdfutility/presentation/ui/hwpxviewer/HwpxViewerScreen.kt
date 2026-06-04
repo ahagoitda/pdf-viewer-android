@@ -28,7 +28,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.pdfutility.R
 import com.pdfutility.data.local.fileio.HwpxTextExtractor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -49,10 +53,10 @@ fun HwpxViewerScreen(
         bodyText = withContext(Dispatchers.IO) {
             val displayName = getDisplayName(context, uri)
             if (displayName.endsWith(".hwp", ignoreCase = true)) {
-                "구형 HWP 바이너리 문서는 아직 지원하지 않습니다.\n\nHWPX로 저장한 파일을 열어 주세요."
+                context.getString(R.string.legacy_hwp_error)
             } else {
                 runCatching { HwpxTextExtractor.extract(context, uri) }
-                    .getOrElse { error -> "문서를 열 수 없습니다.\n\n원인: ${error.message}" }
+                    .getOrElse { error -> context.getString(R.string.hwpx_open_error, error.message) }
             }
         }
         isLoading = false
@@ -61,10 +65,10 @@ fun HwpxViewerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(getDisplayName(context, uri)) },
+                title = { Text(getDisplayName(context, uri), modifier = Modifier.semantics { heading() }) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -102,5 +106,5 @@ private fun getDisplayName(context: android.content.Context, uri: Uri): String {
             }
         }
     }
-    return uri.lastPathSegment ?: "HWPX 문서"
+    return uri.lastPathSegment ?: context.getString(R.string.hwpx_doc)
 }

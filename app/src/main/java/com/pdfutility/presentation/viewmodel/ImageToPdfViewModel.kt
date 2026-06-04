@@ -8,6 +8,7 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.pdfutility.BuildConfig
+import com.pdfutility.R
 import com.pdfutility.domain.usecase.ConvertImagesToPdfUseCase
 import com.pdfutility.presentation.intent.ImageToPdfIntent
 import com.pdfutility.presentation.state.ImageToPdfState
@@ -70,7 +71,7 @@ class ImageToPdfViewModel @Inject constructor(
         val name = _state.value.outputFileName.ifBlank { "pdf_${System.currentTimeMillis()}" }
 
         if (images.isEmpty()) {
-            _state.update { it.copy(error = "이미지를 최소 1장 이상 선택해주세요.") }
+            _state.update { it.copy(error = context.getString(R.string.image_min_required)) }
             return
         }
 

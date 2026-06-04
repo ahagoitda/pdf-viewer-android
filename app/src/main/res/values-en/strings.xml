@@ -15,6 +15,11 @@
     <string name="move_up">Move up</string>
     <string name="move_down">Move down</string>
     <string name="remove">Remove</string>
+    <string name="move_item_up">Move %1$s up</string>
+    <string name="move_item_down">Move %1$s down</string>
+    <string name="remove_item">Remove %1$s</string>
+    <string name="selected">Selected</string>
+    <string name="not_selected">Not selected</string>
 
     <string name="pdf_viewer">PDF Viewer</string>
     <string name="zoom_out">Zoom out</string>
@@ -37,6 +42,22 @@
     <string name="search_placeholder">Search text…</string>
     <string name="searching">Searching…</string>
     <string name="no_results">No results</string>
+    <string name="page_content_description">Page %1$d</string>
+    <string name="share_failed">Share failed: %1$s</string>
+    <string name="file_open_error">Cannot open file.</string>
+    <string name="source_file_open_error">Cannot open source file.</string>
+    <string name="target_file_open_error">Cannot open target file.</string>
+    <string name="file_save_success">File saved successfully.</string>
+    <string name="file_save_error">An error occurred while saving the file.</string>
+    <string name="image_export_success">%1$d images were saved to Gallery (Pictures/PdfUtility).</string>
+    <string name="image_save_error">An error occurred while saving images.</string>
+    <string name="pdf_not_loaded">PDF file is not loaded.</string>
+    <string name="pdf_too_large_text_extract">File is too large (%1$dMB). Text extraction supports files up to 50MB.</string>
+    <string name="pdf_read_error">Cannot read PDF file.</string>
+    <string name="txt_save_success">Text file (.txt) saved successfully.</string>
+    <string name="txt_save_error">An error occurred while saving text.</string>
+    <string name="docx_save_success">Word document (.docx) saved successfully.</string>
+    <string name="docx_save_error">An error occurred while saving Word document.</string>
 
     <string name="image_to_pdf">Image to PDF</string>
     <string name="output_file_name">Output file name</string>
@@ -48,6 +69,7 @@
     <string name="convert_fail">Conversion failed</string>
     <string name="converting_pdf">Converting to PDF…</string>
     <string name="converting_wait">Please wait. More images may take longer.</string>
+    <string name="image_min_required">Select at least 1 image.</string>
     <string name="file_name_label">File: %1$s.pdf</string>
     <string name="page_count_label">Pages: %1$d</string>
     <string name="size_label">Size: %1$s</string>
@@ -59,6 +81,7 @@
     <string name="merge_pdf">Merge PDFs</string>
     <string name="add_pdf_hint">Tap + to add PDFs</string>
     <string name="need_two_pdfs">At least 2 PDFs required</string>
+    <string name="pdf_min_required">Select at least 2 PDFs.</string>
     <string name="merging_pdf">Merging PDFs…</string>
     <string name="merge_success">Merge complete</string>
     <string name="merge_fail">Merge failed</string>
@@ -73,9 +96,12 @@
     <string name="deselect_all">Deselect all</string>
     <string name="extract_pages">Extract %1$d pages</string>
     <string name="page_label">Page %1$d</string>
+    <string name="page_selection_description">Page %1$d, %2$s</string>
     <string name="extract_success">Extraction complete</string>
     <string name="extract_fail">Extraction failed</string>
     <string name="extracted_pages">Extracted pages: %1$d</string>
+    <string name="pdf_page_read_error">Cannot read PDF pages.</string>
+    <string name="page_min_required">Select at least 1 page.</string>
 
     <string name="reorder_pages">Reorder Pages</string>
     <string name="reorder_hint">Select a PDF to reorder pages</string>
@@ -95,12 +121,15 @@
     <string name="no_bookmarks">No bookmarked documents</string>
     <string name="bookmark">Bookmark</string>
     <string name="unbookmark">Remove bookmark</string>
+    <string name="open_document">Open document: %1$s</string>
     <string name="permission_required">File read permission is required.</string>
     <string name="request_permission">Request permission</string>
     <string name="retry">Retry</string>
     <string name="no_pdfs_found">No PDF documents found.</string>
     <string name="delete_document">Delete document</string>
     <string name="delete_confirm">Delete \'%1$s\'?</string>
+    <string name="document_load_error">An error occurred while loading documents.</string>
+    <string name="document_delete_error">An error occurred while deleting document.</string>
 
     <string name="hwpx_doc">HWPX Document</string>
     <string name="legacy_hwp_error">Legacy HWP binary format is not supported yet.\n\nPlease open an HWPX file instead.</string>

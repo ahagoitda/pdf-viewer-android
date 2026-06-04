@@ -43,12 +43,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pdfutility.R
 import com.pdfutility.domain.model.ConversionResult
 import com.pdfutility.presentation.intent.MergePdfIntent
 import com.pdfutility.presentation.state.SelectedPdf
@@ -80,10 +84,10 @@ fun MergePdfScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("PDF 병합") },
+                title = { Text(stringResource(R.string.pdf_merge), modifier = Modifier.semantics { heading() }) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
             )
@@ -98,9 +102,9 @@ fun MergePdfScreen(
             OutlinedTextField(
                 value = state.outputFileName,
                 onValueChange = { viewModel.onIntent(MergePdfIntent.SetOutputName(it)) },
-                label = { Text("출력 파일 이름") },
+                label = { Text(stringResource(R.string.output_file_name)) },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("예: 병합문서") },
+                placeholder = { Text(stringResource(R.string.example_merge_name)) },
                 singleLine = true,
             )
 
@@ -112,14 +116,14 @@ fun MergePdfScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "선택된 PDF (${state.selectedPdfs.size}개)",
+                    text = stringResource(R.string.selected_pdfs, state.selectedPdfs.size),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
                 IconButton(onClick = {
                     pdfPicker.launch(arrayOf("application/pdf"))
                 }) {
-                    Icon(Icons.Default.Add, contentDescription = "PDF 추가")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_pdf))
                 }
             }
 
@@ -151,7 +155,7 @@ fun MergePdfScreen(
             ) {
                 Icon(Icons.Default.Description, contentDescription = null)
                 Spacer(modifier = Modifier.size(8.dp))
-                Text("PDF 병합하기")
+                Text(stringResource(R.string.merge_pdf))
             }
         }
 
@@ -174,12 +178,12 @@ fun MergePdfScreen(
         state.error?.let { error ->
             AlertDialog(
                 onDismissRequest = { viewModel.onIntent(MergePdfIntent.Reset) },
-                title = { Text("오류") },
+                title = { Text(stringResource(R.string.error)) },
                 text = { Text(error) },
                 confirmButton = {
                     TextButton(onClick = {
                         viewModel.onIntent(MergePdfIntent.Reset)
-                    }) { Text("확인") }
+                    }) { Text(stringResource(R.string.confirm)) }
                 },
             )
         }
@@ -234,13 +238,26 @@ private fun PdfListItem(
                 )
             }
             IconButton(onClick = onMoveUp, enabled = index > 0) {
-                Icon(Icons.Default.ArrowUpward, contentDescription = "위로", modifier = Modifier.size(18.dp))
+                Icon(
+                    Icons.Default.ArrowUpward,
+                    contentDescription = stringResource(R.string.move_item_up, pdf.name),
+                    modifier = Modifier.size(18.dp)
+                )
             }
             IconButton(onClick = onMoveDown, enabled = index < totalCount - 1) {
-                Icon(Icons.Default.ArrowDownward, contentDescription = "아래로", modifier = Modifier.size(18.dp))
+                Icon(
+                    Icons.Default.ArrowDownward,
+                    contentDescription = stringResource(R.string.move_item_down, pdf.name),
+                    modifier = Modifier.size(18.dp)
+                )
             }
             IconButton(onClick = onRemove) {
-                Icon(Icons.Default.Delete, contentDescription = "제거", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.remove_item, pdf.name),
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }
@@ -263,11 +280,11 @@ private fun EmptyMergeView() {
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "+ 버튼으로 PDF를 추가하세요",
+            text = stringResource(R.string.add_pdf_hint),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = "최소 2개의 PDF가 필요합니다",
+            text = stringResource(R.string.need_two_pdfs),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.outline,
         )
@@ -291,7 +308,7 @@ private fun MergeProgressDialog(progress: Float) {
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("PDF 병합 중...", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.merging_pdf), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
                 LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(8.dp))
@@ -308,20 +325,20 @@ private fun MergeResultDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (result is ConversionResult.Success) "병합 완료" else "병합 실패") },
+        title = { Text(stringResource(if (result is ConversionResult.Success) R.string.merge_success else R.string.merge_fail)) },
         text = {
             when (result) {
                 is ConversionResult.Success -> {
                     Column {
-                        Text("파일명: ${result.outputName}.pdf")
-                        Text("총 페이지: ${result.pageCount}장")
-                        Text("크기: ${formatFileSize(result.totalSize)}")
+                        Text(stringResource(R.string.file_name_label, result.outputName))
+                        Text(stringResource(R.string.total_pages, result.pageCount))
+                        Text(stringResource(R.string.size_label, formatFileSize(result.totalSize)))
                     }
                 }
                 is ConversionResult.Error -> Text(result.message)
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("확인") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.confirm)) } },
     )
 }
 
@@ -340,5 +357,3 @@ private fun queryPdfMetadata(context: android.content.Context, uri: Uri): Pair<S
     }
     return name to size
 }
-
-

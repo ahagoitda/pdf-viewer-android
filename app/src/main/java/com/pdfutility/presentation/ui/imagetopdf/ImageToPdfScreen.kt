@@ -44,11 +44,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.pdfutility.R
 import com.pdfutility.domain.model.ConversionResult
 import com.pdfutility.presentation.intent.ImageToPdfIntent
 import com.pdfutility.presentation.state.ImageItem
@@ -80,10 +84,10 @@ fun ImageToPdfScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "이미지를 PDF로 변환") },
+                title = { Text(text = stringResource(R.string.image_to_pdf), modifier = Modifier.semantics { heading() }) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -98,16 +102,16 @@ fun ImageToPdfScreen(
             OutlinedTextField(
                 value = state.outputFileName,
                 onValueChange = { viewModel.onIntent(ImageToPdfIntent.SetOutputName(it)) },
-                label = { Text("출력 파일 이름") },
+                label = { Text(stringResource(R.string.output_file_name)) },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("예: my_document") },
+                placeholder = { Text(stringResource(R.string.output_file_hint)) },
                 singleLine = true
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "선택된 이미지 (${state.selectedImages.size})",
+                text = stringResource(R.string.selected_images, state.selectedImages.size),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
@@ -140,7 +144,7 @@ fun ImageToPdfScreen(
                         }) {
                             Icon(imageVector = Icons.Default.Add, contentDescription = null)
                             Spacer(modifier = Modifier.size(4.dp))
-                            Text("이미지 추가")
+                            Text(stringResource(R.string.add_image))
                         }
                     }
                 }
@@ -155,7 +159,7 @@ fun ImageToPdfScreen(
             ) {
                 Icon(imageVector = Icons.Default.PictureAsPdf, contentDescription = null)
                 Spacer(modifier = Modifier.size(8.dp))
-                Text(text = "PDF로 변환하기")
+                Text(text = stringResource(R.string.convert_to_pdf))
             }
         }
 
@@ -178,11 +182,11 @@ fun ImageToPdfScreen(
         state.error?.let { error ->
             AlertDialog(
                 onDismissRequest = { viewModel.onIntent(ImageToPdfIntent.Reset) },
-                title = { Text("오류") },
+                title = { Text(stringResource(R.string.error)) },
                 text = { Text(error) },
                 confirmButton = {
                     TextButton(onClick = { viewModel.onIntent(ImageToPdfIntent.Reset) }) {
-                        Text("확인")
+                        Text(stringResource(R.string.confirm))
                     }
                 }
             )
@@ -233,14 +237,26 @@ private fun ImageItemRow(
             }
             Column {
                 IconButton(onClick = onMoveUp, enabled = index > 0) {
-                    Icon(Icons.Default.ArrowUpward, contentDescription = "위로", modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Default.ArrowUpward,
+                        contentDescription = stringResource(R.string.move_item_up, item.displayName),
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
                 IconButton(onClick = onMoveDown, enabled = index < totalCount - 1) {
-                    Icon(Icons.Default.ArrowDownward, contentDescription = "아래로", modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Default.ArrowDownward,
+                        contentDescription = stringResource(R.string.move_item_down, item.displayName),
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
             IconButton(onClick = onRemove) {
-                Icon(Icons.Default.Close, contentDescription = "제거", modifier = Modifier.size(18.dp))
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = stringResource(R.string.remove_item, item.displayName),
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }
@@ -254,15 +270,15 @@ fun ConversionResultDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(text = if (result is ConversionResult.Success) "변환 성공" else "변환 실패")
+            Text(text = stringResource(if (result is ConversionResult.Success) R.string.convert_success else R.string.convert_fail))
         },
         text = {
             when (result) {
                 is ConversionResult.Success -> {
                     Column {
-                        Text("파일명: ${result.outputName}.pdf")
-                        Text("페이지 수: ${result.pageCount}장")
-                        Text("크기: ${formatFileSize(result.totalSize)}")
+                        Text(stringResource(R.string.file_name_label, result.outputName))
+                        Text(stringResource(R.string.page_count_label, result.pageCount))
+                        Text(stringResource(R.string.size_label, formatFileSize(result.totalSize)))
                     }
                 }
                 is ConversionResult.Error -> {
@@ -272,7 +288,7 @@ fun ConversionResultDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("확인")
+                Text(stringResource(R.string.confirm))
             }
         }
     )

@@ -7,6 +7,7 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pdfutility.R
 import com.pdfutility.domain.model.PdfDocument
 import com.pdfutility.domain.usecase.DeleteDocumentUseCase
 import com.pdfutility.domain.usecase.GetBookmarkedDocumentsUseCase
@@ -80,7 +81,7 @@ class DocumentListViewModel @Inject constructor(
             result.onSuccess { docs ->
                 _state.update { it.copy(documents = docs, isLoading = false) }
             }.onFailure { e ->
-                _state.update { it.copy(error = e.message ?: "문서를 불러오는 중 오류가 발생했습니다.", isLoading = false) }
+                _state.update { it.copy(error = e.message ?: context.getString(R.string.document_load_error), isLoading = false) }
             }
         }
     }
@@ -107,7 +108,7 @@ class DocumentListViewModel @Inject constructor(
             result.onSuccess {
                 loadDocuments()
             }.onFailure { e ->
-                _state.update { it.copy(error = e.message ?: "문서 삭제 중 오류가 발생했습니다.") }
+                _state.update { it.copy(error = e.message ?: context.getString(R.string.document_delete_error)) }
             }
         }
     }

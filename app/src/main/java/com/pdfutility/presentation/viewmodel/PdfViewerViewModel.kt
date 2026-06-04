@@ -27,6 +27,7 @@ import javax.inject.Inject
 import android.content.ContentValues
 import android.provider.MediaStore
 import android.os.Build
+import com.pdfutility.R
 import com.pdfutility.presentation.state.SearchResult
 import com.pdfutility.domain.model.PdfDocument
 import com.pdfutility.domain.usecase.MarkDocumentOpenedUseCase
@@ -118,12 +119,12 @@ class PdfViewerViewModel @Inject constructor(
                             lastModified = System.currentTimeMillis()
                         )
                         markDocumentOpenedUseCase(docDetails)
-                    } ?: throw Exception("파일을 열 수 없습니다.")
+                    } ?: throw Exception(context.getString(R.string.file_open_error))
                 }
             } catch (e: SecurityException) {
-                _state.update { it.copy(error = "암호로 보호된 PDF이거나 접근 권한이 없습니다.", isLoading = false) }
+                _state.update { it.copy(error = context.getString(R.string.protected_pdf_error), isLoading = false) }
             } catch (e: Exception) {
-                _state.update { it.copy(error = e.message ?: "PDF를 불러오는 중 오류가 발생했습니다.", isLoading = false) }
+                _state.update { it.copy(error = e.message ?: context.getString(R.string.pdf_load_error), isLoading = false) }
             }
         }
     }
@@ -139,13 +140,13 @@ class PdfViewerViewModel @Inject constructor(
                         context.contentResolver.openOutputStream(targetUri)?.use { output ->
                             input.copyTo(output)
                         }
-                    } ?: throw Exception("원본 파일을 열 수 없습니다.")
+                    } ?: throw Exception(context.getString(R.string.source_file_open_error))
                 }
             }
             result.onSuccess {
-                _state.update { it.copy(exportState = ExportState.Success("파일이 성공적으로 저장되었습니다.")) }
+                _state.update { it.copy(exportState = ExportState.Success(context.getString(R.string.file_save_success))) }
             }.onFailure { e ->
-                _state.update { it.copy(exportState = ExportState.Error(e.message ?: "파일 저장 중 오류가 발생했습니다.")) }
+                _state.update { it.copy(exportState = ExportState.Error(e.message ?: context.getString(R.string.file_save_error))) }
             }
         }
     }
@@ -201,14 +202,14 @@ class PdfViewerViewModel @Inject constructor(
                             }
                             pageCount
                         }
-                    } ?: throw Exception("파일을 열 수 없습니다.")
+                    } ?: throw Exception(context.getString(R.string.file_open_error))
                 }
             }
 
             result.onSuccess { pageCount ->
-                _state.update { it.copy(exportState = ExportState.Success("${pageCount}장의 이미지가 갤러리(Pictures/PdfUtility)에 저장되었습니다.")) }
+                _state.update { it.copy(exportState = ExportState.Success(context.getString(R.string.image_export_success, pageCount))) }
             }.onFailure { e ->
-                _state.update { it.copy(exportState = ExportState.Error(e.message ?: "이미지 저장 중 오류가 발생했습니다.")) }
+                _state.update { it.copy(exportState = ExportState.Error(e.message ?: context.getString(R.string.image_save_error))) }
             }
         }
     }
@@ -279,7 +280,7 @@ class PdfViewerViewModel @Inject constructor(
     }
 
     private fun extractTextFromPdf(): String {
-        val uriStr = currentUriString ?: throw Exception("PDF 파일이 로드되지 않았습니다.")
+        val uriStr = currentUriString ?: throw Exception(context.getString(R.string.pdf_not_loaded))
         val uri = Uri.parse(uriStr)
 
         val fileSize = try {
@@ -289,7 +290,7 @@ class PdfViewerViewModel @Inject constructor(
         } catch (_: Exception) { 0L }
 
         if (fileSize > MAX_TEXT_EXTRACTION_SIZE && fileSize > 0) {
-            throw Exception("파일이 너무 큽니다(${fileSize / (1024 * 1024)}MB). 50MB 이하 파일만 텍스트 추출 가능합니다.")
+            throw Exception(context.getString(R.string.pdf_too_large_text_extract, fileSize / (1024 * 1024)))
         }
 
         context.contentResolver.openInputStream(uri)?.use { inputStream ->
@@ -297,7 +298,7 @@ class PdfViewerViewModel @Inject constructor(
                 val stripper = PDFTextStripper()
                 return stripper.getText(pdDocument)
             }
-        } ?: throw Exception("PDF 파일을 읽을 수 없습니다.")
+        } ?: throw Exception(context.getString(R.string.pdf_read_error))
     }
 
     private fun saveAsText(targetUri: Uri) {
@@ -308,13 +309,13 @@ class PdfViewerViewModel @Inject constructor(
                     val extractedText = extractTextFromPdf()
                     context.contentResolver.openOutputStream(targetUri)?.use { output ->
                         output.write(extractedText.toByteArray(Charsets.UTF_8))
-                    } ?: throw Exception("저장할 파일을 열 수 없습니다.")
+                    } ?: throw Exception(context.getString(R.string.target_file_open_error))
                 }
             }
             result.onSuccess {
-                _state.update { it.copy(exportState = ExportState.Success("텍스트 파일(.txt)이 성공적으로 저장되었습니다.")) }
+                _state.update { it.copy(exportState = ExportState.Success(context.getString(R.string.txt_save_success))) }
             }.onFailure { e ->
-                _state.update { it.copy(exportState = ExportState.Error(e.message ?: "텍스트 저장 중 오류가 발생했습니다.")) }
+                _state.update { it.copy(exportState = ExportState.Error(e.message ?: context.getString(R.string.txt_save_error))) }
             }
         }
     }
@@ -328,13 +329,13 @@ class PdfViewerViewModel @Inject constructor(
                     val docxBytes = createDocxBytes(extractedText)
                     context.contentResolver.openOutputStream(targetUri)?.use { output ->
                         output.write(docxBytes)
-                    } ?: throw Exception("저장할 파일을 열 수 없습니다.")
+                    } ?: throw Exception(context.getString(R.string.target_file_open_error))
                 }
             }
             result.onSuccess {
-                _state.update { it.copy(exportState = ExportState.Success("워드 문서(.docx)가 성공적으로 저장되었습니다.")) }
+                _state.update { it.copy(exportState = ExportState.Success(context.getString(R.string.docx_save_success))) }
             }.onFailure { e ->
-                _state.update { it.copy(exportState = ExportState.Error(e.message ?: "워드 저장 중 오류가 발생했습니다.")) }
+                _state.update { it.copy(exportState = ExportState.Error(e.message ?: context.getString(R.string.docx_save_error))) }
             }
         }
     }

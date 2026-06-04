@@ -1,13 +1,16 @@
 package com.pdfutility.presentation.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pdfutility.R
 import com.pdfutility.domain.model.ConversionResult
 import com.pdfutility.domain.usecase.MergePdfsUseCase
 import com.pdfutility.presentation.intent.MergePdfIntent
 import com.pdfutility.presentation.state.MergePdfState
 import com.pdfutility.presentation.state.SelectedPdf
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +21,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MergePdfViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val mergePdfsUseCase: MergePdfsUseCase,
 ) : ViewModel() {
 
@@ -61,7 +65,7 @@ class MergePdfViewModel @Inject constructor(
     private fun startMerge() {
         val pdfs = _state.value.selectedPdfs
         if (pdfs.size < 2) {
-            _state.update { it.copy(error = "PDF를 최소 2개 이상 선택해주세요.") }
+            _state.update { it.copy(error = context.getString(R.string.pdf_min_required)) }
             return
         }
 

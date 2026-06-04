@@ -48,10 +48,17 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pdfutility.R
 import com.pdfutility.domain.model.ConversionResult
 import com.pdfutility.presentation.intent.SplitPdfIntent
 import com.pdfutility.presentation.viewmodel.SplitPdfViewModel
@@ -75,10 +82,10 @@ fun SplitPdfScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("PDF 페이지 추출") },
+                title = { Text(stringResource(R.string.pdf_split), modifier = Modifier.semantics { heading() }) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
             )
@@ -109,10 +116,10 @@ fun SplitPdfScreen(
         state.error?.let { error ->
             AlertDialog(
                 onDismissRequest = { viewModel.onIntent(SplitPdfIntent.Reset) },
-                title = { Text("오류") },
+                title = { Text(stringResource(R.string.error)) },
                 text = { Text(error) },
                 confirmButton = {
-                    TextButton(onClick = { viewModel.onIntent(SplitPdfIntent.Reset) }) { Text("확인") }
+                    TextButton(onClick = { viewModel.onIntent(SplitPdfIntent.Reset) }) { Text(stringResource(R.string.confirm)) }
                 },
             )
         }
@@ -139,11 +146,11 @@ private fun EmptyPdfSelectView(onSelectPdf: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Button(onClick = onSelectPdf) {
-            Text("PDF 파일 선택")
+            Text(stringResource(R.string.select_pdf))
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "분할할 PDF 파일을 선택하세요",
+            text = stringResource(R.string.select_pdf_hint),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -168,11 +175,11 @@ private fun ColumnScope.PdfLoadedView(
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.weight(1f),
         )
-        TextButton(onClick = onSelectPdf) { Text("다른 파일") }
+        TextButton(onClick = onSelectPdf) { Text(stringResource(R.string.another_file)) }
     }
 
     Text(
-        text = "총 ${state.pageCount}페이지 중 ${state.selectedPages.size}페이지 선택됨",
+        text = stringResource(R.string.pages_selected, state.pageCount, state.selectedPages.size),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -186,7 +193,7 @@ private fun ColumnScope.PdfLoadedView(
         OutlinedTextField(
             value = state.outputFileName,
             onValueChange = { onIntent(SplitPdfIntent.SetOutputName(it)) },
-            label = { Text("출력 파일 이름") },
+            label = { Text(stringResource(R.string.output_file_name)) },
             modifier = Modifier.weight(1f),
             singleLine = true,
         )
@@ -197,10 +204,10 @@ private fun ColumnScope.PdfLoadedView(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         IconButton(onClick = { onIntent(SplitPdfIntent.SelectAll) }) {
-            Icon(Icons.Default.SelectAll, contentDescription = "전체 선택")
+            Icon(Icons.Default.SelectAll, contentDescription = stringResource(R.string.select_all))
         }
         IconButton(onClick = { onIntent(SplitPdfIntent.DeselectAll) }) {
-            Icon(Icons.Default.Deselect, contentDescription = "전체 해제")
+            Icon(Icons.Default.Deselect, contentDescription = stringResource(R.string.deselect_all))
         }
     }
 
@@ -240,7 +247,7 @@ private fun ColumnScope.PdfLoadedView(
             CircularProgressIndicator(modifier = Modifier.size(18.dp), color = MaterialTheme.colorScheme.onPrimary)
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Text("${state.selectedPages.size}페이지 추출하기")
+        Text(stringResource(R.string.extract_pages, state.selectedPages.size))
     }
 }
 
@@ -253,18 +260,28 @@ private fun PageThumbnail(
 ) {
     val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
     val borderWidth = if (isSelected) 2.dp else 1.dp
+    val selectionDescription = stringResource(
+        R.string.page_selection_description,
+        pageIndex + 1,
+        stringResource(if (isSelected) R.string.selected else R.string.not_selected)
+    )
 
     Box(
         modifier = Modifier
             .shadow(1.dp, MaterialTheme.shapes.small)
             .border(borderWidth, borderColor, MaterialTheme.shapes.small)
+            .semantics {
+                role = Role.Button
+                selected = isSelected
+                contentDescription = selectionDescription
+            }
             .clickable(onClick = onClick),
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             if (bitmap != null && !bitmap.isRecycled) {
                 androidx.compose.foundation.Image(
                     bitmap = bitmap.asImageBitmap(),
-                    contentDescription = "${pageIndex + 1}페이지",
+                    contentDescription = stringResource(R.string.page_label, pageIndex + 1),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp),
@@ -312,20 +329,19 @@ private fun SplitResultDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (result is ConversionResult.Success) "추출 완료" else "추출 실패") },
+        title = { Text(stringResource(if (result is ConversionResult.Success) R.string.extract_success else R.string.extract_fail)) },
         text = {
             when (result) {
                 is ConversionResult.Success -> {
                     Column {
-                        Text("파일명: ${result.outputName}.pdf")
-                        Text("추출된 페이지: ${result.pageCount}장")
-                        Text("크기: ${formatFileSize(result.totalSize)}")
+                        Text(stringResource(R.string.file_name_label, result.outputName))
+                        Text(stringResource(R.string.extracted_pages, result.pageCount))
+                        Text(stringResource(R.string.size_label, formatFileSize(result.totalSize)))
                     }
                 }
                 is ConversionResult.Error -> Text(result.message)
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("확인") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.confirm)) } },
     )
 }
-

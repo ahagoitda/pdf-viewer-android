@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pdfutility.R
 import com.pdfutility.data.local.fileio.PdfSplitDataSource
 import com.pdfutility.domain.model.ConversionResult
 import com.pdfutility.domain.usecase.ReorderPagesUseCase
@@ -54,7 +55,7 @@ class ReorderPagesViewModel @Inject constructor(
             _state.update { it.copy(sourceUri = uri, isProcessing = true, error = null) }
             val pageCount = reorderPagesUseCase.getPageCount(uri)
             if (pageCount <= 0) {
-                _state.update { it.copy(isProcessing = false, error = "PDF 페이지를 읽을 수 없습니다.") }
+                _state.update { it.copy(isProcessing = false, error = context.getString(R.string.pdf_page_read_error)) }
                 return@launch
             }
             val name = queryDisplayName(uri) ?: "document"

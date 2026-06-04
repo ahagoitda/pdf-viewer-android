@@ -63,9 +63,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pdfutility.R
 import com.pdfutility.presentation.intent.PdfViewerIntent
 import com.pdfutility.presentation.state.ExportState
 import com.pdfutility.presentation.state.SearchResult
@@ -146,10 +150,10 @@ fun PdfViewerScreen(
     if (showSaveFormatDialog) {
         AlertDialog(
             onDismissRequest = { showSaveFormatDialog = false },
-            title = { Text("파일 저장 형식 선택") },
+            title = { Text(stringResource(R.string.save_format_title)) },
             text = {
                 Column {
-                    Text("저장할 파일 형식을 선택하세요:", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.save_format_body), style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     TextButton(
@@ -162,7 +166,7 @@ fun PdfViewerScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-                            Text("PDF 파일 (.pdf)로 저장", style = MaterialTheme.typography.bodyLarge)
+                            Text(stringResource(R.string.save_as_pdf), style = MaterialTheme.typography.bodyLarge)
                         }
                     }
                     
@@ -178,7 +182,7 @@ fun PdfViewerScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-                            Text("텍스트 파일 (.txt)로 저장", style = MaterialTheme.typography.bodyLarge)
+                            Text(stringResource(R.string.save_as_txt), style = MaterialTheme.typography.bodyLarge)
                         }
                     }
                     
@@ -194,14 +198,14 @@ fun PdfViewerScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-                            Text("워드 문서 (.docx)로 저장", style = MaterialTheme.typography.bodyLarge)
+                            Text(stringResource(R.string.save_as_docx), style = MaterialTheme.typography.bodyLarge)
                         }
                     }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showSaveFormatDialog = false }) {
-                    Text("취소")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -212,12 +216,12 @@ fun PdfViewerScreen(
         is ExportState.Exporting -> {
             AlertDialog(
                 onDismissRequest = {},
-                title = { Text("처리 중") },
+                title = { Text(stringResource(R.string.processing)) },
                 text = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text("잠시만 기다려주세요...")
+                        Text(stringResource(R.string.please_wait))
                     }
                 },
                 confirmButton = {}
@@ -226,11 +230,11 @@ fun PdfViewerScreen(
         is ExportState.Success -> {
             AlertDialog(
                 onDismissRequest = { viewModel.onIntent(PdfViewerIntent.DismissExportState) },
-                title = { Text("성공") },
+                title = { Text(stringResource(R.string.success)) },
                 text = { Text(exportState.message) },
                 confirmButton = {
                     TextButton(onClick = { viewModel.onIntent(PdfViewerIntent.DismissExportState) }) {
-                        Text("확인")
+                        Text(stringResource(R.string.confirm))
                     }
                 }
             )
@@ -238,11 +242,11 @@ fun PdfViewerScreen(
         is ExportState.Error -> {
             AlertDialog(
                 onDismissRequest = { viewModel.onIntent(PdfViewerIntent.DismissExportState) },
-                title = { Text("오류") },
+                title = { Text(stringResource(R.string.error)) },
                 text = { Text(exportState.error) },
                 confirmButton = {
                     TextButton(onClick = { viewModel.onIntent(PdfViewerIntent.DismissExportState) }) {
-                        Text("확인")
+                        Text(stringResource(R.string.confirm))
                     }
                 }
             )
@@ -254,12 +258,12 @@ fun PdfViewerScreen(
         var pageInput by remember { mutableStateOf((state.currentPage + 1).toString()) }
         AlertDialog(
             onDismissRequest = { showGoToPageDialog = false },
-            title = { Text("페이지 이동") },
+            title = { Text(stringResource(R.string.go_to_page)) },
             text = {
                 OutlinedTextField(
                     value = pageInput,
                     onValueChange = { pageInput = it.filter { c -> c.isDigit() } },
-                    label = { Text("페이지 번호 (1-${state.pageCount})") },
+                    label = { Text(stringResource(R.string.page_number_hint, state.pageCount)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -271,10 +275,10 @@ fun PdfViewerScreen(
                         viewModel.onIntent(PdfViewerIntent.GoToPage(pageNum))
                     }
                     showGoToPageDialog = false
-                }) { Text("이동") }
+                }) { Text(stringResource(R.string.move)) }
             },
             dismissButton = {
-                TextButton(onClick = { showGoToPageDialog = false }) { Text("취소") }
+                TextButton(onClick = { showGoToPageDialog = false }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }
@@ -282,54 +286,54 @@ fun PdfViewerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "PDF 뷰어") },
+                title = { Text(text = stringResource(R.string.pdf_viewer), modifier = Modifier.semantics { heading() }) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.onIntent(PdfViewerIntent.ToggleSearch) }) {
-                        Icon(imageVector = Icons.Default.Search, contentDescription = "검색")
+                        Icon(imageVector = Icons.Default.Search, contentDescription = stringResource(R.string.search))
                     }
                     IconButton(onClick = { 
                         val newZoom = (state.zoomLevel - 0.2f).coerceIn(1f, 5f)
                         viewModel.onIntent(PdfViewerIntent.SetZoom(newZoom)) 
                         if (newZoom <= 1f) offset = Offset.Zero
                     }) {
-                        Icon(imageVector = Icons.Default.Remove, contentDescription = "축소")
+                        Icon(imageVector = Icons.Default.Remove, contentDescription = stringResource(R.string.zoom_out))
                     }
                     Text(text = "${(state.zoomLevel * 100).toInt()}%")
                     IconButton(onClick = { 
                         val newZoom = (state.zoomLevel + 0.2f).coerceIn(1f, 5f)
                         viewModel.onIntent(PdfViewerIntent.SetZoom(newZoom)) 
                     }) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "확대")
+                        Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(R.string.zoom_in))
                     }
                     Box {
                         IconButton(onClick = { menuExpanded = true }) {
-                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "더보기")
+                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_options))
                         }
                         DropdownMenu(
                             expanded = menuExpanded,
                             onDismissRequest = { menuExpanded = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("공유하기") },
+                                text = { Text(stringResource(R.string.share)) },
                                 onClick = {
                                     menuExpanded = false
                                     sharePdf(context, pdfUri)
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("파일로 저장...") },
+                                text = { Text(stringResource(R.string.save_as_file)) },
                                 onClick = {
                                     menuExpanded = false
                                     showSaveFormatDialog = true
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("이미지로 저장") },
+                                text = { Text(stringResource(R.string.save_as_image)) },
                                 onClick = {
                                     menuExpanded = false
                                     viewModel.onIntent(PdfViewerIntent.ExportAsImages)
@@ -371,28 +375,28 @@ fun PdfViewerScreen(
                                     OutlinedTextField(
                                         value = state.searchQuery,
                                         onValueChange = { viewModel.onIntent(PdfViewerIntent.Search(it)) },
-                                        placeholder = { Text("텍스트 검색...") },
+                                        placeholder = { Text(stringResource(R.string.search_placeholder)) },
                                         singleLine = true,
                                         modifier = Modifier.weight(1f)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     IconButton(onClick = { viewModel.onIntent(PdfViewerIntent.PreviousSearchResult) }, enabled = state.searchResults.isNotEmpty()) {
-                                        Icon(Icons.Default.ArrowUpward, contentDescription = "이전", modifier = Modifier.size(20.dp))
+                                        Icon(Icons.Default.ArrowUpward, contentDescription = stringResource(R.string.previous), modifier = Modifier.size(20.dp))
                                     }
                                     IconButton(onClick = { viewModel.onIntent(PdfViewerIntent.NextSearchResult) }, enabled = state.searchResults.isNotEmpty()) {
-                                        Icon(Icons.Default.ArrowDownward, contentDescription = "다음", modifier = Modifier.size(20.dp))
+                                        Icon(Icons.Default.ArrowDownward, contentDescription = stringResource(R.string.next), modifier = Modifier.size(20.dp))
                                     }
                                     IconButton(onClick = { viewModel.onIntent(PdfViewerIntent.ToggleSearch) }) {
-                                        Icon(Icons.Default.Close, contentDescription = "닫기", modifier = Modifier.size(20.dp))
+                                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close), modifier = Modifier.size(20.dp))
                                     }
                                 }
                                 if (state.isSearching) {
-                                    Text("검색 중...", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 8.dp))
+                                    Text(stringResource(R.string.searching), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 8.dp))
                                 } else if (state.searchQuery.isNotBlank()) {
                                     val idx = state.currentSearchIndex
                                     val total = state.searchResults.size
                                     Text(
-                                        if (total > 0) "${idx + 1} / $total" else "결과 없음",
+                                        if (total > 0) "${idx + 1} / $total" else stringResource(R.string.no_results),
                                         style = MaterialTheme.typography.bodySmall,
                                         modifier = Modifier.padding(start = 8.dp)
                                     )
@@ -501,8 +505,8 @@ private fun sharePdf(context: Context, uriString: String) {
             putExtra(Intent.EXTRA_STREAM, shareableUri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, "PDF 공유"))
+        context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_pdf)))
     } catch (e: Exception) {
-        Toast.makeText(context, "공유 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.share_failed, e.message), Toast.LENGTH_SHORT).show()
     }
 }

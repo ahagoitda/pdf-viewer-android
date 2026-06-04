@@ -17,10 +17,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.pdfutility.R
 
 @Composable
 fun ConversionProgressScreen(progress: Float) {
@@ -41,7 +43,7 @@ fun ConversionProgressScreen(progress: Float) {
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "PDF 변환 중...",
+                    text = stringResource(R.string.converting_pdf),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -57,7 +59,7 @@ fun ConversionProgressScreen(progress: Float) {
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "잠시만 기다려 주세요. 이미지가 많을수록 시간이 더 걸릴 수 있습니다.",
+                    text = stringResource(R.string.converting_wait),
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
