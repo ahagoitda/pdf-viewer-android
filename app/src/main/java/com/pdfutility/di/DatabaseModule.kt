@@ -2,6 +2,8 @@ package com.pdfutility.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pdfutility.data.local.db.PdfUtilityDatabase
 import com.pdfutility.data.local.db.dao.BookmarkDao
 import com.pdfutility.data.local.db.dao.RecentDocumentDao
@@ -16,6 +18,14 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    private val MIGRATION_1_2 = object : Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `bookmarks` (`uri` TEXT NOT NULL, `name` TEXT NOT NULL, `size` INTEGER NOT NULL, `bookmarked_at` INTEGER NOT NULL, PRIMARY KEY(`uri`))"
+            )
+        }
+    }
+
     @Provides
     @Singleton
     fun provideDatabase(
@@ -25,7 +35,10 @@ object DatabaseModule {
             context,
             PdfUtilityDatabase::class.java,
             "pdf_utility.db",
-        ).fallbackToDestructiveMigration().build()
+        )
+            .addMigrations(MIGRATION_1_2)
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides

@@ -27,6 +27,7 @@ import javax.inject.Inject
 import android.content.ContentValues
 import android.provider.MediaStore
 import android.os.Build
+import com.pdfutility.presentation.state.SearchResult
 import com.pdfutility.domain.model.PdfDocument
 import com.pdfutility.domain.usecase.MarkDocumentOpenedUseCase
 import com.pdfutility.domain.usecase.ResolveDocumentDetailsUseCase
@@ -73,6 +74,13 @@ class PdfViewerViewModel @Inject constructor(
             }
             is PdfViewerIntent.SaveAsText -> saveAsText(intent.targetUri)
             is PdfViewerIntent.SaveAsDocx -> saveAsDocx(intent.targetUri)
+            is PdfViewerIntent.Search -> searchInPdf(intent.query)
+            is PdfViewerIntent.NextSearchResult -> nextSearchResult()
+            is PdfViewerIntent.PreviousSearchResult -> previousSearchResult()
+            is PdfViewerIntent.ToggleSearch -> {
+                val visible = !_state.value.isSearchVisible
+                _state.update { it.copy(isSearchVisible = visible, searchQuery = "", searchResults = emptyList(), currentSearchIndex = -1) }
+            }
         }
     }
 
@@ -377,5 +385,60 @@ class PdfViewerViewModel @Inject constructor(
             zos.closeEntry()
         }
         return baos.toByteArray()
+    }
+
+    private fun searchInPdf(query: String) {
+        if (query.isBlank()) {
+            _state.update { it.copy(searchResults = emptyList(), currentSearchIndex = -1, searchQuery = query) }
+            return
+        }
+        val uriStr = currentUriString ?: return
+        _state.update { it.copy(searchQuery = query, isSearching = true) }
+        viewModelScope.launch {
+            val results = withContext(Dispatchers.IO) {
+                runCatching {
+                    val uri = Uri.parse(uriStr)
+                    context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                        PDDocument.load(inputStream).use { doc ->
+                            val stripper = PDFTextStripper()
+                            val found = mutableListOf<SearchResult>()
+                            for (i in 0 until doc.numberOfPages) {
+                                ensureActive()
+                                stripper.startPage = i + 1
+                                stripper.endPage = i + 1
+                                val pageText = stripper.getText(doc)
+                                if (pageText.contains(query, ignoreCase = true)) {
+                                    val idx = pageText.indexOf(query, ignoreCase = true)
+                                    val start = maxOf(0, idx - 30)
+                                    val end = minOf(pageText.length, idx + query.length + 30)
+                                    val snippet = pageText.substring(start, end).replace("\n", " ").trim()
+                                    found.add(SearchResult(pageIndex = i, snippet = "...$snippet..."))
+                                }
+                            }
+                            found
+                        }
+                    } ?: emptyList()
+                }.getOrDefault(emptyList())
+            }
+            val newIndex = if (results.isNotEmpty()) 0 else -1
+            val newPage = if (results.isNotEmpty()) results[0].pageIndex else _state.value.currentPage
+            _state.update {
+                it.copy(searchResults = results, currentSearchIndex = newIndex, isSearching = false, currentPage = newPage)
+            }
+        }
+    }
+
+    private fun nextSearchResult() {
+        val results = _state.value.searchResults
+        if (results.isEmpty()) return
+        val next = (_state.value.currentSearchIndex + 1) % results.size
+        _state.update { it.copy(currentSearchIndex = next, currentPage = results[next].pageIndex) }
+    }
+
+    private fun previousSearchResult() {
+        val results = _state.value.searchResults
+        if (results.isEmpty()) return
+        val prev = if (_state.value.currentSearchIndex <= 0) results.size - 1 else _state.value.currentSearchIndex - 1
+        _state.update { it.copy(currentSearchIndex = prev, currentPage = results[prev].pageIndex) }
     }
 }

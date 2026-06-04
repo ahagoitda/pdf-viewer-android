@@ -20,14 +20,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -38,6 +44,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -61,6 +68,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pdfutility.presentation.intent.PdfViewerIntent
 import com.pdfutility.presentation.state.ExportState
+import com.pdfutility.presentation.state.SearchResult
 import com.pdfutility.presentation.viewmodel.PdfViewerViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 
@@ -281,6 +289,9 @@ fun PdfViewerScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { viewModel.onIntent(PdfViewerIntent.ToggleSearch) }) {
+                        Icon(imageVector = Icons.Default.Search, contentDescription = "검색")
+                    }
                     IconButton(onClick = { 
                         val newZoom = (state.zoomLevel - 0.2f).coerceIn(1f, 5f)
                         viewModel.onIntent(PdfViewerIntent.SetZoom(newZoom)) 
@@ -347,6 +358,48 @@ fun PdfViewerScreen(
                 )
             } else {
                 Column {
+                    if (state.isSearchVisible) {
+                        Surface(
+                            tonalElevation = 2.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    OutlinedTextField(
+                                        value = state.searchQuery,
+                                        onValueChange = { viewModel.onIntent(PdfViewerIntent.Search(it)) },
+                                        placeholder = { Text("텍스트 검색...") },
+                                        singleLine = true,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    IconButton(onClick = { viewModel.onIntent(PdfViewerIntent.PreviousSearchResult) }, enabled = state.searchResults.isNotEmpty()) {
+                                        Icon(Icons.Default.ArrowUpward, contentDescription = "이전", modifier = Modifier.size(20.dp))
+                                    }
+                                    IconButton(onClick = { viewModel.onIntent(PdfViewerIntent.NextSearchResult) }, enabled = state.searchResults.isNotEmpty()) {
+                                        Icon(Icons.Default.ArrowDownward, contentDescription = "다음", modifier = Modifier.size(20.dp))
+                                    }
+                                    IconButton(onClick = { viewModel.onIntent(PdfViewerIntent.ToggleSearch) }) {
+                                        Icon(Icons.Default.Close, contentDescription = "닫기", modifier = Modifier.size(20.dp))
+                                    }
+                                }
+                                if (state.isSearching) {
+                                    Text("검색 중...", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 8.dp))
+                                } else if (state.searchQuery.isNotBlank()) {
+                                    val idx = state.currentSearchIndex
+                                    val total = state.searchResults.size
+                                    Text(
+                                        if (total > 0) "${idx + 1} / $total" else "결과 없음",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
                     // Page indicator
                     Box(
                         modifier = Modifier

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Office Viewer</string>
+
+    <string name="confirm">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="error">Error</string>
+    <string name="success">Success</string>
+    <string name="back">Back</string>
+    <string name="close">Close</string>
+    <string name="search">Search</string>
+    <string name="previous">Previous</string>
+    <string name="next">Next</string>
+    <string name="move_up">Move up</string>
+    <string name="move_down">Move down</string>
+    <string name="remove">Remove</string>
+
+    <string name="pdf_viewer">PDF Viewer</string>
+    <string name="zoom_out">Zoom out</string>
+    <string name="zoom_in">Zoom in</string>
+    <string name="more_options">More</string>
+    <string name="share">Share</string>
+    <string name="share_pdf">Share PDF</string>
+    <string name="save_as_file">Save as file…</string>
+    <string name="save_as_image">Save as images</string>
+    <string name="save_format_title">Choose save format</string>
+    <string name="save_format_body">Select a file format:</string>
+    <string name="save_as_pdf">Save as PDF (.pdf)</string>
+    <string name="save_as_txt">Save as text (.txt)</string>
+    <string name="save_as_docx">Save as Word (.docx)</string>
+    <string name="processing">Processing</string>
+    <string name="please_wait">Please wait…</string>
+    <string name="go_to_page">Go to page</string>
+    <string name="page_number_hint">Page number (1-%1$d)</string>
+    <string name="move">Go</string>
+    <string name="search_placeholder">Search text…</string>
+    <string name="searching">Searching…</string>
+    <string name="no_results">No results</string>
+
+    <string name="image_to_pdf">Image to PDF</string>
+    <string name="output_file_name">Output file name</string>
+    <string name="output_file_hint">e.g. my_document</string>
+    <string name="selected_images">Selected images (%1$d)</string>
+    <string name="add_image">Add image</string>
+    <string name="convert_to_pdf">Convert to PDF</string>
+    <string name="convert_success">Conversion successful</string>
+    <string name="convert_fail">Conversion failed</string>
+    <string name="converting_pdf">Converting to PDF…</string>
+    <string name="converting_wait">Please wait. More images may take longer.</string>
+    <string name="file_name_label">File: %1$s.pdf</string>
+    <string name="page_count_label">Pages: %1$d</string>
+    <string name="size_label">Size: %1$s</string>
+    <string name="example_merge_name">e.g. merged_doc</string>
+
+    <string name="pdf_merge">PDF Merge</string>
+    <string name="selected_pdfs">Selected PDFs (%1$d)</string>
+    <string name="add_pdf">Add PDF</string>
+    <string name="merge_pdf">Merge PDFs</string>
+    <string name="add_pdf_hint">Tap + to add PDFs</string>
+    <string name="need_two_pdfs">At least 2 PDFs required</string>
+    <string name="merging_pdf">Merging PDFs…</string>
+    <string name="merge_success">Merge complete</string>
+    <string name="merge_fail">Merge failed</string>
+    <string name="total_pages">Total pages: %1$d</string>
+
+    <string name="pdf_split">PDF Page Extract</string>
+    <string name="select_pdf">Select PDF file</string>
+    <string name="select_pdf_hint">Select a PDF to extract pages from</string>
+    <string name="another_file">Different file</string>
+    <string name="pages_selected">%2$d of %1$d pages selected</string>
+    <string name="select_all">Select all</string>
+    <string name="deselect_all">Deselect all</string>
+    <string name="extract_pages">Extract %1$d pages</string>
+    <string name="page_label">Page %1$d</string>
+    <string name="extract_success">Extraction complete</string>
+    <string name="extract_fail">Extraction failed</string>
+    <string name="extracted_pages">Extracted pages: %1$d</string>
+
+    <string name="reorder_pages">Reorder Pages</string>
+    <string name="reorder_hint">Select a PDF to reorder pages</string>
+    <string name="page_count">%1$d pages</string>
+    <string name="save_reorder">Save reordered PDF</string>
+    <string name="reorder_success">Reorder complete</string>
+    <string name="reorder_fail">Reorder failed</string>
+
+    <string name="document_list">Documents</string>
+    <string name="open_hwpx">Open HWPX</string>
+    <string name="open_device_pdf">Open device PDF</string>
+    <string name="tab_all">All</string>
+    <string name="tab_bookmarks">Bookmarks</string>
+    <string name="recent_docs">Recent documents</string>
+    <string name="all_docs">All documents</string>
+    <string name="no_documents">No documents found.</string>
+    <string name="no_bookmarks">No bookmarked documents</string>
+    <string name="bookmark">Bookmark</string>
+    <string name="unbookmark">Remove bookmark</string>
+    <string name="permission_required">File read permission is required.</string>
+    <string name="request_permission">Request permission</string>
+    <string name="retry">Retry</string>
+    <string name="no_pdfs_found">No PDF documents found.</string>
+    <string name="delete_document">Delete document</string>
+    <string name="delete_confirm">Delete \'%1$s\'?</string>
+
+    <string name="hwpx_doc">HWPX Document</string>
+    <string name="legacy_hwp_error">Legacy HWP binary format is not supported yet.\n\nPlease open an HWPX file instead.</string>
+    <string name="hwpx_open_error">Cannot open document.\n\nReason: %1$s</string>
+
+    <string name="protected_pdf_error">This PDF is password-protected or access is denied.</string>
+    <string name="pdf_load_error">An error occurred while loading the PDF.</string>
+</resources>

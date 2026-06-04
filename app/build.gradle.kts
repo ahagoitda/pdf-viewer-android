@@ -129,4 +129,8 @@ dependencies {
 
     implementation(libs.coil.compose)
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+
+    testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.coroutines.test)
 }

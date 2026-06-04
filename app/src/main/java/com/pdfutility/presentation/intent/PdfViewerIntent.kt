@@ -13,4 +13,8 @@ sealed interface PdfViewerIntent {
     data object DismissExportState : PdfViewerIntent
     data class SaveAsText(val targetUri: Uri) : PdfViewerIntent
     data class SaveAsDocx(val targetUri: Uri) : PdfViewerIntent
+    data class Search(val query: String) : PdfViewerIntent
+    data object NextSearchResult : PdfViewerIntent
+    data object PreviousSearchResult : PdfViewerIntent
+    data object ToggleSearch : PdfViewerIntent
 }
