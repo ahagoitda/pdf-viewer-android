@@ -156,4 +156,18 @@
 
     <string name="protected_pdf_error">This PDF is password-protected or access is denied.</string>
     <string name="pdf_load_error">An error occurred while loading the PDF.</string>
+
+    <string name="search_results_count">%1$d / %2$d</string>
+    <string name="search_query_placeholder">Search in body…</string>
+    <string name="reader_settings_title">Reader Settings</string>
+    <string name="font_size_label">Font size: %1$.0f</string>
+    <string name="theme_label">Theme</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_sepia">Sepia</string>
+    <string name="theme_dark">Dark</string>
+    <string name="document_info_title">Document Info</string>
+    <string name="doc_info_char_count">Characters (with spaces): %1$d</string>
+    <string name="doc_info_char_no_space">Characters (no spaces): %1$d</string>
+    <string name="doc_info_paragraph_count">Paragraphs: %1$d</string>
+    <string name="doc_info_file_size">File Size: %1$s</string>
 </resources>

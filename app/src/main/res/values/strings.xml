@@ -156,4 +156,18 @@
 
     <string name="protected_pdf_error">암호로 보호된 PDF이거나 접근 권한이 없습니다.</string>
     <string name="pdf_load_error">PDF를 불러오는 중 오류가 발생했습니다.</string>
+
+    <string name="search_results_count">%1$d / %2$d</string>
+    <string name="search_query_placeholder">본문 검색…</string>
+    <string name="reader_settings_title">읽기 설정</string>
+    <string name="font_size_label">글자 크기: %1$.0f</string>
+    <string name="theme_label">배경 테마</string>
+    <string name="theme_light">밝게</string>
+    <string name="theme_sepia">세피아</string>
+    <string name="theme_dark">어둡게</string>
+    <string name="document_info_title">문서 정보</string>
+    <string name="doc_info_char_count">글자 수(공백 포함): %1$d자</string>
+    <string name="doc_info_char_no_space">글자 수(공백 제외): %1$d자</string>
+    <string name="doc_info_paragraph_count">문단 수: %1$d개</string>
+    <string name="doc_info_file_size">파일 크기: %1$s</string>
 </resources>

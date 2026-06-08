@@ -11,6 +11,11 @@ object HwpxTextExtractor {
     private const val MAX_ENTRY_SIZE = 10 * 1024 * 1024L
 
     fun extract(context: Context, uri: Uri): String {
+        val paragraphs = extractParagraphs(context, uri)
+        return paragraphs.joinToString("\n\n").ifBlank { "문서 텍스트가 비어 있습니다." }
+    }
+
+    fun extractParagraphs(context: Context, uri: Uri): List<String> {
         val parts = mutableListOf<Pair<String, ByteArray>>()
 
         context.contentResolver.openInputStream(uri)?.use { input ->
@@ -31,14 +36,12 @@ object HwpxTextExtractor {
 
         require(parts.isNotEmpty()) { "HWPX 본문 XML을 찾지 못했습니다." }
 
-        val text = buildString {
-            parts.sortedBy { it.first }.forEach { (_, bytes) ->
-                appendSection(bytes, this)
-                if (isNotEmpty() && last() != '\n') append('\n')
-            }
-        }.trim()
+        val paragraphs = mutableListOf<String>()
+        parts.sortedBy { it.first }.forEach { (_, bytes) ->
+            appendSectionParagraphs(bytes, paragraphs)
+        }
 
-        return text.ifBlank { "문서 텍스트가 비어 있습니다." }
+        return paragraphs.map { it.trim() }.filter { it.isNotEmpty() }
     }
 
     private fun ZipInputStream.readBytes(maxSize: Long): ByteArray {
@@ -55,7 +58,7 @@ object HwpxTextExtractor {
         return buffer.toByteArray()
     }
 
-    private fun appendSection(xmlBytes: ByteArray, output: StringBuilder) {
+    private fun appendSectionParagraphs(xmlBytes: ByteArray, paragraphs: MutableList<String>) {
         val factory = DocumentBuilderFactory.newInstance().apply {
             isNamespaceAware = true
             setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
@@ -64,11 +67,29 @@ object HwpxTextExtractor {
         }
 
         val document = factory.newDocumentBuilder().parse(ByteArrayInputStream(xmlBytes))
-        walk(document.documentElement, output)
+        collectParagraphs(document.documentElement, paragraphs)
     }
 
-    private fun walk(node: Node, output: StringBuilder) {
-        when (node.localName ?: node.nodeName.substringAfter(':')) {
+    private fun collectParagraphs(node: Node, paragraphs: MutableList<String>) {
+        val localName = node.localName ?: node.nodeName.substringAfter(':')
+        if (localName == "p") {
+            val sb = StringBuilder()
+            walkForParagraphText(node, sb)
+            val text = sb.toString().trim()
+            if (text.isNotEmpty()) {
+                paragraphs.add(text)
+            }
+            return
+        }
+        val children = node.childNodes
+        for (i in 0 until children.length) {
+            collectParagraphs(children.item(i), paragraphs)
+        }
+    }
+
+    private fun walkForParagraphText(node: Node, output: StringBuilder) {
+        val localName = node.localName ?: node.nodeName.substringAfter(':')
+        when (localName) {
             "t" -> {
                 output.append(node.textContent)
                 return
@@ -81,20 +102,10 @@ object HwpxTextExtractor {
                 output.append('\t')
                 return
             }
-            "p" -> {
-                val before = output.length
-                walkChildren(node, output)
-                if (output.length > before && output.last() != '\n') output.append('\n')
-                return
-            }
         }
-        walkChildren(node, output)
-    }
-
-    private fun walkChildren(node: Node, output: StringBuilder) {
         val children = node.childNodes
-        for (index in 0 until children.length) {
-            walk(children.item(index), output)
+        for (i in 0 until children.length) {
+            walkForParagraphText(children.item(i), output)
         }
     }
 }
