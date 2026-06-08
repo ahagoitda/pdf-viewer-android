@@ -40,7 +40,11 @@ class ImageToPdfViewModel @Inject constructor(
     fun onIntent(intent: ImageToPdfIntent) {
         when (intent) {
             is ImageToPdfIntent.SelectImages -> {
-                _state.update { it.copy(selectedImages = intent.images) }
+                val existingUris = _state.value.selectedImages.map { it.uri }.toSet()
+                val sortedNewImages = intent.images
+                    .filter { it.uri !in existingUris }
+                    .sortedBy { it.displayName }
+                _state.update { it.copy(selectedImages = it.selectedImages + sortedNewImages) }
             }
             is ImageToPdfIntent.RemoveImage -> {
                 _state.update { it.copy(selectedImages = it.selectedImages.filter { img -> img.uri != intent.uri }) }
@@ -58,6 +62,27 @@ class ImageToPdfViewModel @Inject constructor(
             is ImageToPdfIntent.SetOptions -> {
                 _state.update { it.copy(options = intent.options) }
             }
+            is ImageToPdfIntent.ShowSorting -> {
+                _state.update { it.copy(isSortingActive = true, orderedImages = it.selectedImages) }
+            }
+            is ImageToPdfIntent.HideSorting -> {
+                _state.update { it.copy(isSortingActive = false) }
+            }
+            is ImageToPdfIntent.ToggleImageOrder -> {
+                val currentOrder = _state.value.orderedImages.toMutableList()
+                if (currentOrder.contains(intent.item)) {
+                    currentOrder.remove(intent.item)
+                } else {
+                    currentOrder.add(intent.item)
+                }
+                _state.update { it.copy(orderedImages = currentOrder) }
+            }
+            is ImageToPdfIntent.ClearOrder -> {
+                _state.update { it.copy(orderedImages = emptyList()) }
+            }
+            is ImageToPdfIntent.ResetOrder -> {
+                _state.update { it.copy(orderedImages = it.selectedImages) }
+            }
             is ImageToPdfIntent.StartConversion -> startConversion()
             is ImageToPdfIntent.Reset -> {
                 _state.value = ImageToPdfState()
@@ -70,7 +95,7 @@ class ImageToPdfViewModel @Inject constructor(
     }
 
     private fun startConversion() {
-        val images = _state.value.selectedImages.map { it.uri }
+        val images = _state.value.orderedImages.map { it.uri }
         val name = _state.value.outputFileName.ifBlank { "pdf_${System.currentTimeMillis()}" }
 
         if (images.isEmpty()) {

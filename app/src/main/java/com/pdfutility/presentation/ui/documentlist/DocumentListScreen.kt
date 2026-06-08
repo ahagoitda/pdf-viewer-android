@@ -6,7 +6,9 @@ import android.os.Build
 import android.text.format.Formatter
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -331,14 +333,30 @@ private fun BookmarkedDocumentsView(
 
 @Composable
 fun SectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
+    Row(
         modifier = Modifier
-            .padding(16.dp, 16.dp, 16.dp, 8.dp)
-            .semantics { heading() }
-    )
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 4.dp, height = 16.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = MaterialTheme.shapes.extraSmall
+                )
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            ),
+            modifier = Modifier.semantics { heading() }
+        )
+    }
 }
 
 @Composable
@@ -354,42 +372,54 @@ fun DocumentItem(
     val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(document.lastModified))
     val openDescription = stringResource(R.string.open_document, document.name)
 
-    Row(
+    androidx.compose.material3.Card(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
             .semantics {
                 role = Role.Button
                 contentDescription = openDescription
-            }
-            .clickable { onClick() }
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            },
+        shape = MaterialTheme.shapes.medium,
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+        onClick = onClick
     ) {
-        Icon(
-            imageVector = Icons.Default.Description,
-            contentDescription = null,
-            modifier = Modifier.size(40.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = document.name,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1
-            )
-            Text(
-                text = "$fileSize | $date",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray
-            )
-        }
-        IconButton(onClick = onBookmark) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Icon(
-                imageVector = if (isBookmarked) Icons.Default.Star else Icons.Outlined.StarOutline,
-                contentDescription = stringResource(if (isBookmarked) R.string.unbookmark else R.string.bookmark),
-                tint = if (isBookmarked) MaterialTheme.colorScheme.primary else Color.Gray
+                imageVector = Icons.Default.Description,
+                contentDescription = null,
+                modifier = Modifier.size(36.dp),
+                tint = MaterialTheme.colorScheme.primary
             )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = document.name,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "$fileSize · $date",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(onClick = onBookmark) {
+                Icon(
+                    imageVector = if (isBookmarked) Icons.Default.Star else Icons.Outlined.StarOutline,
+                    contentDescription = stringResource(if (isBookmarked) R.string.unbookmark else R.string.bookmark),
+                    tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -441,11 +471,15 @@ fun EmptyStateView() {
         Icon(
             imageVector = Icons.Default.Description,
             contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = Color.LightGray
+            modifier = Modifier.size(72.dp),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Text(text = stringResource(R.string.no_pdfs_found), color = Color.Gray, fontSize = 18.sp)
+        Text(
+            text = stringResource(R.string.no_pdfs_found),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

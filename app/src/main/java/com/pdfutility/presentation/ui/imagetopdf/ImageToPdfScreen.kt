@@ -4,8 +4,13 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -16,6 +21,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -44,6 +52,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -60,6 +69,7 @@ import com.pdfutility.domain.model.PdfPageOrientation
 import com.pdfutility.domain.model.PdfPageSize
 import com.pdfutility.presentation.intent.ImageToPdfIntent
 import com.pdfutility.presentation.state.ImageItem
+import com.pdfutility.presentation.state.ImageToPdfState
 import com.pdfutility.presentation.viewmodel.ImageToPdfViewModel
 import com.pdfutility.util.openPdfFile
 import com.pdfutility.util.sharePdfFile
@@ -87,10 +97,145 @@ fun ImageToPdfScreen(
         }
     }
 
+    if (state.isSortingActive) {
+        ImageSortScreen(
+            state = state,
+            onIntent = viewModel::onIntent,
+            onBackClick = { viewModel.onIntent(ImageToPdfIntent.HideSorting) }
+        )
+    } else {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(text = stringResource(R.string.image_to_pdf), modifier = Modifier.semantics { heading() }) },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        }
+                    }
+                )
+            }
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp)
+            ) {
+                OutlinedTextField(
+                    value = state.outputFileName,
+                    onValueChange = { viewModel.onIntent(ImageToPdfIntent.SetOutputName(it)) },
+                    label = { Text(stringResource(R.string.output_file_name)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text(stringResource(R.string.output_file_hint)) },
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                ImagePdfOptionsView(
+                    options = state.options,
+                    onOptionsChange = { viewModel.onIntent(ImageToPdfIntent.SetOptions(it)) },
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(R.string.selected_images, state.selectedImages.size),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    itemsIndexed(state.selectedImages, key = { _, item -> item.uri }) { index, item ->
+                        ImageItemRow(
+                            item = item,
+                            index = index,
+                            totalCount = state.selectedImages.size,
+                            onRemove = { viewModel.onIntent(ImageToPdfIntent.RemoveImage(item.uri)) },
+                            onMoveUp = { viewModel.onIntent(ImageToPdfIntent.MoveImage(index, index - 1)) },
+                            onMoveDown = { viewModel.onIntent(ImageToPdfIntent.MoveImage(index, index + 1)) },
+                        )
+                    }
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Button(onClick = {
+                                imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            }) {
+                                Icon(imageVector = Icons.Default.Add, contentDescription = null)
+                                Spacer(modifier = Modifier.size(4.dp))
+                                Text(stringResource(R.string.add_image))
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = { viewModel.onIntent(ImageToPdfIntent.ShowSorting) },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = state.selectedImages.isNotEmpty() && !state.isConverting
+                ) {
+                    Icon(imageVector = Icons.Default.PictureAsPdf, contentDescription = null)
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(text = stringResource(R.string.convert_to_pdf))
+                }
+            }
+        }
+    }
+
+    if (state.isConverting) {
+        ConversionProgressScreen(progress = state.conversionProgress)
+    }
+
+    state.conversionResult?.let { result ->
+        ConversionResultDialog(
+            result = result,
+            onDismiss = {
+                viewModel.onIntent(ImageToPdfIntent.DismissResult)
+                if (result is ConversionResult.Success) {
+                    onConversionSuccess(result.outputPath)
+                }
+            }
+        )
+    }
+
+    state.error?.let { error ->
+        AlertDialog(
+            onDismissRequest = { viewModel.onIntent(ImageToPdfIntent.Reset) },
+            title = { Text(stringResource(R.string.error)) },
+            text = { Text(error) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.onIntent(ImageToPdfIntent.Reset) }) {
+                    Text(stringResource(R.string.confirm))
+                }
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ImageSortScreen(
+    state: ImageToPdfState,
+    onIntent: (ImageToPdfIntent) -> Unit,
+    onBackClick: () -> Unit,
+) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = stringResource(R.string.image_to_pdf), modifier = Modifier.semantics { heading() }) },
+                title = { Text(text = "순서 고르기", modifier = Modifier.semantics { heading() }) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
@@ -105,59 +250,89 @@ fun ImageToPdfScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            OutlinedTextField(
-                value = state.outputFileName,
-                onValueChange = { viewModel.onIntent(ImageToPdfIntent.SetOutputName(it)) },
-                label = { Text(stringResource(R.string.output_file_name)) },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text(stringResource(R.string.output_file_hint)) },
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            ImagePdfOptionsView(
-                options = state.options,
-                onOptionsChange = { viewModel.onIntent(ImageToPdfIntent.SetOptions(it)) },
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             Text(
-                text = stringResource(R.string.selected_images, state.selectedImages.size),
+                text = "이미지를 터치하여 병합할 순서를 정하세요.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "선택됨: ${state.orderedImages.size} / ${state.selectedImages.size}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            LazyColumn(
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { onIntent(ImageToPdfIntent.ClearOrder) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("전체 해제")
+                }
+                Button(
+                    onClick = { onIntent(ImageToPdfIntent.ResetOrder) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("처음 선택한 순서")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
                 modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                itemsIndexed(state.selectedImages, key = { _, item -> item.uri }) { index, item ->
-                    ImageItemRow(
-                        item = item,
-                        index = index,
-                        totalCount = state.selectedImages.size,
-                        onRemove = { viewModel.onIntent(ImageToPdfIntent.RemoveImage(item.uri)) },
-                        onMoveUp = { viewModel.onIntent(ImageToPdfIntent.MoveImage(index, index - 1)) },
-                        onMoveDown = { viewModel.onIntent(ImageToPdfIntent.MoveImage(index, index + 1)) },
-                    )
-                }
-                item {
-                    Row(
+                items(state.selectedImages, key = { it.uri }) { item ->
+                    val orderIndex = state.orderedImages.indexOf(item)
+                    val isSelected = orderIndex >= 0
+
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.Center
+                            .aspectRatio(1f)
+                            .shadow(1.dp, MaterialTheme.shapes.small)
+                            .border(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                shape = MaterialTheme.shapes.small
+                            )
+                            .clickable { onIntent(ImageToPdfIntent.ToggleImageOrder(item)) }
                     ) {
-                        Button(onClick = {
-                            imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        }) {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = null)
-                            Spacer(modifier = Modifier.size(4.dp))
-                            Text(stringResource(R.string.add_image))
+                        AsyncImage(
+                            model = item.uri,
+                            contentDescription = item.displayName,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            alpha = if (isSelected) 1f else 0.4f
+                        )
+
+                        if (isSelected) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(6.dp)
+                                    .size(24.dp)
+                                    .background(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        shape = MaterialTheme.shapes.extraSmall
+                                    )
+                                    .align(Alignment.TopEnd),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "${orderIndex + 1}",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
@@ -166,43 +341,14 @@ fun ImageToPdfScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = { viewModel.onIntent(ImageToPdfIntent.StartConversion) },
+                onClick = { onIntent(ImageToPdfIntent.StartConversion) },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = state.selectedImages.isNotEmpty() && !state.isConverting
+                enabled = state.orderedImages.isNotEmpty() && !state.isConverting
             ) {
                 Icon(imageVector = Icons.Default.PictureAsPdf, contentDescription = null)
                 Spacer(modifier = Modifier.size(8.dp))
-                Text(text = stringResource(R.string.convert_to_pdf))
+                Text(text = "PDF 만들기")
             }
-        }
-
-        if (state.isConverting) {
-            ConversionProgressScreen(progress = state.conversionProgress)
-        }
-
-        state.conversionResult?.let { result ->
-            ConversionResultDialog(
-                result = result,
-                onDismiss = {
-                    viewModel.onIntent(ImageToPdfIntent.DismissResult)
-                    if (result is ConversionResult.Success) {
-                        onConversionSuccess(result.outputPath)
-                    }
-                }
-            )
-        }
-
-        state.error?.let { error ->
-            AlertDialog(
-                onDismissRequest = { viewModel.onIntent(ImageToPdfIntent.Reset) },
-                title = { Text(stringResource(R.string.error)) },
-                text = { Text(error) },
-                confirmButton = {
-                    TextButton(onClick = { viewModel.onIntent(ImageToPdfIntent.Reset) }) {
-                        Text(stringResource(R.string.confirm))
-                    }
-                }
-            )
         }
     }
 }

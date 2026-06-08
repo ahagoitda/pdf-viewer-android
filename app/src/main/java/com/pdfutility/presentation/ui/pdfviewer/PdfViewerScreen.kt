@@ -90,7 +90,7 @@ fun PdfViewerScreen(
     viewModel: PdfViewerViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    val renderedBitmaps by viewModel.renderedBitmaps.collectAsState()
+    val renderedBitmaps = viewModel.renderedBitmaps
     val listState = rememberLazyListState()
     val context = LocalContext.current
     

@@ -55,8 +55,7 @@ class PdfViewerViewModel @Inject constructor(
     private var currentUriString: String? = null
     private var bookmarkObserverUri: String? = null
 
-    private val _renderedBitmaps = MutableStateFlow<Map<Int, Bitmap>>(emptyMap())
-    val renderedBitmaps: StateFlow<Map<Int, Bitmap>> = _renderedBitmaps.asStateFlow()
+    val renderedBitmaps = androidx.compose.runtime.mutableStateMapOf<Int, Bitmap>()
 
     private val rendererMutex = Mutex()
 
@@ -221,14 +220,13 @@ class PdfViewerViewModel @Inject constructor(
             }
         }
     }
-
     private fun renderPage(pageIndex: Int, width: Int, height: Int) {
         if (pageIndex < 0 || pageIndex >= (_state.value.pageCount)) return
-        if (_renderedBitmaps.value.containsKey(pageIndex)) return
+        if (renderedBitmaps.containsKey(pageIndex)) return
 
         viewModelScope.launch {
             rendererMutex.withLock {
-                if (_renderedBitmaps.value.containsKey(pageIndex)) return@withLock
+                if (renderedBitmaps.containsKey(pageIndex)) return@withLock
 
                 val bitmap = withContext(Dispatchers.Default) {
                     try {
@@ -248,18 +246,14 @@ class PdfViewerViewModel @Inject constructor(
                 }
 
                 bitmap?.let { bmp ->
-                    val currentMap = _renderedBitmaps.value.toMutableMap()
-
-                    val keysToRemove = currentMap.keys.filter { it < pageIndex - 2 || it > pageIndex + 2 }
-                    keysToRemove.forEach { key ->
-                        currentMap.remove(key)
-                    }
-
-                    currentMap[pageIndex] = bmp
-                    _renderedBitmaps.value = currentMap.toMap()
-
-                    for (key in keysToRemove) {
-                        _renderedBitmaps.value[key]?.recycle()
+                    val currentPage = _state.value.currentPage
+                    val keysToRemove = renderedBitmaps.keys.filter { it < currentPage - 4 || it > currentPage + 4 }
+                    
+                    withContext(Dispatchers.Main) {
+                        for (key in keysToRemove) {
+                            renderedBitmaps.remove(key)
+                        }
+                        renderedBitmaps[pageIndex] = bmp
                     }
 
                     _state.update { it.copy(currentPage = pageIndex) }
@@ -273,11 +267,8 @@ class PdfViewerViewModel @Inject constructor(
     }
 
     private fun clearAllBitmaps() {
-        val currentMap = _renderedBitmaps.value
-        _renderedBitmaps.value = emptyMap()
-        currentMap.values.forEach { it.recycle() }
+        renderedBitmaps.clear()
     }
-
     override fun onCleared() {
         super.onCleared()
         closeRenderer()

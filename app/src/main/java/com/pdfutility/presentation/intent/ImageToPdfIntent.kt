@@ -9,6 +9,11 @@ sealed interface ImageToPdfIntent {
     data class MoveImage(val fromIndex: Int, val toIndex: Int) : ImageToPdfIntent
     data class SetOutputName(val name: String) : ImageToPdfIntent
     data class SetOptions(val options: ImagePdfOptions) : ImageToPdfIntent
+    data object ShowSorting : ImageToPdfIntent
+    data object HideSorting : ImageToPdfIntent
+    data class ToggleImageOrder(val item: ImageItem) : ImageToPdfIntent
+    data object ClearOrder : ImageToPdfIntent
+    data object ResetOrder : ImageToPdfIntent
     data object StartConversion : ImageToPdfIntent
     data object Reset : ImageToPdfIntent
     data object DismissResult : ImageToPdfIntent

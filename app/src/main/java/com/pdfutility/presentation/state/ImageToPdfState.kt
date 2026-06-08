@@ -8,6 +8,8 @@ data class ImageToPdfState(
     val selectedImages: List<ImageItem> = emptyList(),
     val outputFileName: String = "",
     val options: ImagePdfOptions = ImagePdfOptions(),
+    val isSortingActive: Boolean = false,
+    val orderedImages: List<ImageItem> = emptyList(),
     val isConverting: Boolean = false,
     val conversionProgress: Float = 0f,
     val conversionResult: ConversionResult? = null,

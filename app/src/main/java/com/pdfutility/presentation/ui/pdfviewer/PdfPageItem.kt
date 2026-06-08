@@ -36,7 +36,7 @@ fun PdfPageItem(
     ) {
         val width = with(LocalDensity.current) { maxWidth.toPx() }.toInt()
 
-        LaunchedEffect(pageIndex) {
+        LaunchedEffect(pageIndex, bitmap == null) {
             if (bitmap == null) {
                 onRenderRequest(width, 0)
             }
