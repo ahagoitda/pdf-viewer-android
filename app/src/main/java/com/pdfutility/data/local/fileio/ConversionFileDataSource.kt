@@ -85,7 +85,8 @@ class ConversionFileDataSource @Inject constructor(
                     val left = (pageWidth - scaledWidth) / 2f
                     val top = (pageHeight - scaledHeight) / 2f
 
-                    canvas.drawBitmap(it, left, top, null)
+                    val destRect = android.graphics.RectF(left, top, left + scaledWidth, top + scaledHeight)
+                    canvas.drawBitmap(it, null, destRect, null)
                     pdfDocument.finishPage(page)
 
                     successCount++
@@ -115,10 +116,10 @@ class ConversionFileDataSource @Inject constructor(
     }
 
     private fun pageDimensions(width: Int, height: Int, options: ImagePdfOptions): Pair<Int, Int> {
-        val base = when (options.pageSize) {
-            PdfPageSize.A4 -> A4_WIDTH_PT to A4_HEIGHT_PT
-            PdfPageSize.Original -> width to height
+        if (options.pageSize == PdfPageSize.Original) {
+            return width to height
         }
+        val base = A4_WIDTH_PT to A4_HEIGHT_PT
         return when (options.orientation) {
             PdfPageOrientation.Portrait -> min(base.first, base.second) to max(base.first, base.second)
             PdfPageOrientation.Landscape -> max(base.first, base.second) to min(base.first, base.second)
